@@ -67,7 +67,7 @@ export class StoredClass implements ObjectListener<any>{
     createNewTable(obj: any) : void {
         let table_name = obj.constructor.name;
         let command = "CREATE TABLE " + table_name + "( ";
-        command += ' orm_id INT(255), '
+        command += 'orm_id INT(255), '
 		for (let attribute of Object.keys(obj)){
             let attribute_type = obj[attribute].constructor.name;
             command += attribute + " " +  this.tsTypeToSQLType(attribute_type) + ", ";
