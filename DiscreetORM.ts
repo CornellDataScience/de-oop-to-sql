@@ -4,13 +4,29 @@ export interface ObjectListener<T> {
     onObjectCreation(t: T): void;
 }
 
-export class DiscreetORMOutput {
+export class DiscreetORMIO {
     sql_filepath : string;
     tlist_filepath : string;
+    FILE_ENCODING = 'utf8';
+    FILE_NOT_FOUND_ERROR_IDENT = 'no such';
 
     constructor(sql_path : string, tlist_path : string) {
         this.sql_filepath = sql_path;
         this.tlist_filepath = tlist_path;
+    }
+
+    readTables() : string[] {
+        let tables_contents = '';
+
+        try {
+            tables_contents = <string> fs.readFileSync(this.tlist_filepath, this.FILE_ENCODING);
+        } catch (e) {
+            if (e.message.includes(this.FILE_NOT_FOUND_ERROR_IDENT)) {
+                return []
+            }
+            throw e;
+        }
+        return tables_contents.split("\n");
     }
 
     writeSQL(output : string) : void {
@@ -58,10 +74,10 @@ export function Listener<I extends ObjectListener<any>>(listener: I) {
 }
 
 export class StoredClass implements ObjectListener<any>{
-    discreet_sql_out : DiscreetORMOutput;
+    discreet_sql_io : DiscreetORMIO;
 
-    constructor(sql_out : DiscreetORMOutput) {
-        this.discreet_sql_out = sql_out;
+    constructor(sql_out : DiscreetORMIO) {
+        this.discreet_sql_io = sql_out;
     }
 
     createNewTable(obj: any) : void {
@@ -74,12 +90,15 @@ export class StoredClass implements ObjectListener<any>{
         }
         command += ")";
         console.log(command);
-        this.discreet_sql_out.writeSQL(command);
-        this.discreet_sql_out.writeNewTable(table_name);
+        this.discreet_sql_io.writeSQL(command);
+        this.discreet_sql_io.writeNewTable(table_name);
     }
 
     onObjectCreation(obj: any) {
-        this.createNewTable(obj);
+        let table_name = obj.constructor.name;
+        if (!this.discreet_sql_io.readTables().includes(table_name)){
+            this.createNewTable(obj);
+        }
     }
 
     tsTypeToSQLType(ts_type : String) : String{
@@ -101,9 +120,9 @@ export class StoredClass implements ObjectListener<any>{
 let command_out = 'commands.sql';
 let table_lst = 'tables.tlst';
 
-export const SQL_OUTPUT = new DiscreetORMOutput('commands.sql', table_lst);
+export const SQL_IO = new DiscreetORMIO('commands.sql', table_lst);
 // Applied on an example. 
-@Listener(new StoredClass(SQL_OUTPUT))
+@Listener(new StoredClass(SQL_IO))
 class TaskRunner {
     taskName: string;
 	taskStatus : string; 

@@ -1,6 +1,6 @@
 import * as DiscreetORM from './DiscreetORM'
 
-@DiscreetORM.Listener(new DiscreetORM.StoredClass(DiscreetORM.SQL_OUTPUT))
+@DiscreetORM.Listener(new DiscreetORM.StoredClass(DiscreetORM.SQL_IO))
 class Student {
     studentName: string;
 	studentYear : string; 
@@ -16,4 +16,5 @@ class Student {
 	}
 }
 
-let student = new Student('Ahad', '2021', 0);
+let ahad_student = new Student('Ahad', '2021', 0);
+let haram_student = new Student('Haram', '2020', 5.0);
