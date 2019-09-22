@@ -32,21 +32,25 @@ export class DiscreetORMIO {
     writeSQL(output : string) : void {
         let formatted_output = '\n' + output;
         let buffer = Buffer.alloc(formatted_output.length, formatted_output);
-
-        fs.appendFile(this.sql_filepath, buffer, (err) => {
-            if (err) throw 'DiscreetORM SQL Table write error. Could not write to file: ' + err;;
-            console.log('Wrote SQL Table to table list.');
-          });
+        
+        try {
+            fs.appendFileSync(this.sql_filepath, buffer);
+            console.log('Wrote SQL commands to commands file.');
+        } catch (e) {
+            throw 'DiscreetORM SQL Table write error. Could not write to file: ' + e;
+        }
     }
 
     writeNewTable(table_name : string) : void {
         let formatted_output = '\n' + table_name;
         let buffer = Buffer.alloc(formatted_output.length, formatted_output);
 
-        fs.appendFile(this.tlist_filepath, buffer, (err) => {
-            if (err) throw 'DiscreetORM SQL Table write error. Could not write to file: ' + err;;
-            console.log('Wrote SQL Table to table list.');
-          });
+        try {
+            fs.appendFileSync(this.tlist_filepath, buffer);
+            console.log('Wrote SQL table to tables file.');
+        } catch (e) {
+            throw 'DiscreetORM SQL Table write error. Could not write to file: ' + e;
+        }
     }
 }
 
@@ -107,6 +111,9 @@ export class StoredClass implements ObjectListener<any>{
                 return "VARCHAR(255)";
             }
             case "Number" : {
+                return "INT(255)"
+            }
+            case "number" : {
                 return "INT(255)"
             }
             default : {
