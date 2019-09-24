@@ -11,6 +11,7 @@ class Student {
         this.studentGpa = studentGpa;
     }
 
+    @DiscreetORM.Enumerable
 	f(number: Number) {
 		return number; 
     }

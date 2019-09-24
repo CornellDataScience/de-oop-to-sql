@@ -144,3 +144,14 @@ class TaskRunner {
 		return number; 
 	}
 }
+
+export function Enumerable(target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+    console.log("-- target --");
+    console.log(target);
+    console.log("-- proertyKey --");
+    console.log(propertyKey);
+    console.log("-- descriptor --");
+    console.log(descriptor);
+    //make the method enumerable
+    descriptor.enumerable = true;
+}
