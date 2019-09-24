@@ -5,3 +5,4 @@ node_modules/
 DiscreetORM.js
 example.js
 .DS_Store
+*.js
