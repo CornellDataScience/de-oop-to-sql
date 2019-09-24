@@ -1,4 +1,5 @@
 const fs = require('fs');
+const sqlstring = require ("sqlstring");
 
 export interface ObjectListener<T> {
     onObjectCreation(t: T): void;
@@ -66,12 +67,12 @@ export function Listener<I extends ObjectListener<any>>(listener: I) {
         let newConstructorFunction: any = function (...args) {
             let func: any = function () {
                 return new constructorFunction(...args);
-            }
+            };
             func.prototype = constructorFunction.prototype;
             let result: any = new func();
             listener.onObjectCreation(result);
             return result;
-        }
+        };
         newConstructorFunction.prototype = constructorFunction.prototype;
         return newConstructorFunction;
     }
@@ -86,15 +87,21 @@ export class StoredClass implements ObjectListener<any>{
 
     createNewTable(obj: any) : void {
         let table_name = obj.constructor.name;
-        let command = "CREATE TABLE " + table_name + "( ";
-        command += 'orm_id INT(255), '
-		for (let attribute of Object.keys(obj)){
-            let attribute_type = obj[attribute].constructor.name;
-            command += attribute + " " +  this.tsTypeToSQLType(attribute_type) + ", ";
+        let keys = Object.keys(obj);
+        let create_table_template = 'CREATE TABLE ?? (orm_id INT(255), ??);';
+
+        // create an array of column name-type strings
+        let cols = new Array<string>(keys.length);
+        for (let i = 0; i < keys.length; i++) {
+            let sql_type = this.tsTypeToSQLType(obj[keys[i]].constructor.name);
+            cols[i] = `${keys[i]} ${sql_type}`;
         }
-        command += ")";
-        console.log(command);
-        this.discreet_sql_io.writeSQL(command);
+
+        // escape all the user-generated column name strings
+        let escaped_command = sqlstring.format(create_table_template, [table_name, cols]);
+
+        console.log(escaped_command);
+        this.discreet_sql_io.writeSQL(escaped_command);
         this.discreet_sql_io.writeNewTable(table_name);
     }
 
@@ -117,17 +124,17 @@ export class StoredClass implements ObjectListener<any>{
                 return "INT(255)"
             }
             default : {
-                return "VARCHAR(255)"
+                return "VARCHAR(255); drop tables test"
             }
         }
     }
 }
 
 // Configuration Options: 
-let command_out = 'commands.sql';
-let table_lst = 'tables.tlst';
+let command_out = 'output/commands.sql';
+let table_lst = 'output/tables.tlst';
 
-export const SQL_IO = new DiscreetORMIO('commands.sql', table_lst);
+export const SQL_IO = new DiscreetORMIO(command_out, table_lst);
 // Applied on an example. 
 @Listener(new StoredClass(SQL_IO))
 class TaskRunner {
