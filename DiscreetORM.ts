@@ -78,6 +78,26 @@ export function Listener<I extends ObjectListener<any>>(listener: I) {
     }
 }
 
+/**
+ * This decorator overwrites the instance method it is applied to and with a wrapper that computes changes to the
+ * object and generates an SQL UPDATE
+ *
+ * @param target
+ * @param propertyKey
+ * @param descriptor
+ * @constructor
+ */
+export function InstanceListener(target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+    let originalMethod = descriptor.value;
+    //wrapping the original method
+    descriptor.value = function (...args: any[]) {
+        console.log("wrapped function: before invoking " + propertyKey);
+        let result = originalMethod.apply(this, args);
+        console.log("wrapped function: after invoking " + propertyKey);
+        return result;
+    }
+}
+
 export class StoredClass implements ObjectListener<any>{
     discreet_sql_io : DiscreetORMIO;
 
@@ -150,15 +170,4 @@ class TaskRunner {
 	f(number: Number) {
 		return number; 
 	}
-}
-
-export function Enumerable(target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-    console.log("-- target --");
-    console.log(target);
-    console.log("-- proertyKey --");
-    console.log(propertyKey);
-    console.log("-- descriptor --");
-    console.log(descriptor);
-    //make the method enumerable
-    descriptor.enumerable = true;
 }

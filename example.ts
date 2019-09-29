@@ -11,7 +11,7 @@ class Student {
         this.studentGpa = studentGpa;
     }
 
-    @DiscreetORM.Enumerable
+    @DiscreetORM.InstanceListener
 	f(number: Number) {
 		return number; 
     }
@@ -24,4 +24,5 @@ class Student {
 
 let ahad_student = new Student('Ahad', '2021', 0);
 let haram_student = new Student('Haram', '2020', 5.0);
+ahad_student.f(3);
 ahad_student.f(3);
