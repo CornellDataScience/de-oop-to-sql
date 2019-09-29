@@ -124,7 +124,7 @@ export class StoredClass implements ObjectListener<any>{
                 return "INT(255)"
             }
             default : {
-                return "VARCHAR(255); drop tables test"
+                return "VARCHAR(255)"
             }
         }
     }
