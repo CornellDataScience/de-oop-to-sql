@@ -74,6 +74,26 @@ export function Listener<I extends ObjectListener<any>>(listener: I) {
         }
         newConstructorFunction.prototype = constructorFunction.prototype;
         return newConstructorFunction;
+        /* return class extends newConstructorFunction{
+            // Add a new attribute to the class that the discreet orm uses.
+            discreet_orm_id : number;
+        }; */
+    }
+}
+
+// The decorator factory used to ensure static functions mantain consistency with the database.
+export function WriteToDB(discreet_sql_io : DiscreetORMIO){
+    return function (target: Object, propertyKey: string | symbol, descriptor: PropertyDescriptor) {
+        const original_function = descriptor.value;
+
+        descriptor.value = function(... args: any[]) {
+            let result = original_function.apply(this, args);
+            let result_table_name = result.constructor.name;
+            let reference_id = result.discreet_orm_id;
+            discreet_sql_io.writeSQL('STATIC FUNCTION CALL FOR ' + result_table_name);    
+        }
+
+        return descriptor;
     }
 }
 
