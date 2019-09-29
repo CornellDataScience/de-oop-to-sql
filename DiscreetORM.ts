@@ -1,4 +1,4 @@
-const fs = require('fs');
+const fs = require('fs');  // For Node.js
 
 export interface ObjectListener<T> {
     onObjectCreation(t: T): void;
@@ -101,10 +101,10 @@ export class StoredClass implements ObjectListener<any>{
         }
     }
 
-    tsTypeToSQLType(ts_type : String) : String{
+    tsTypeToSQLType(ts_type : String) : String {
         switch (ts_type) {
             case "String": {
-                return "VARCHAR(255)";
+                return "VARCHAR(255)"
             }
             case "Number" : {
                 return "INT(255)"
@@ -114,13 +114,22 @@ export class StoredClass implements ObjectListener<any>{
             }
         }
     }
+
+    /* Queries the database to search for all objects of the 
+    specified class to reconstruct them into TypeScript objects. */
+    query_class(class_name : String) : void {
+        let command = "SELECT * FROM " + class_name
+        console.log(command)
+        this.discreet_sql_io.writeSQL(command)
+        
+    }
 }
 
 // Configuration Options: 
-let command_out = 'commands.sql';
-let table_lst = 'tables.tlst';
+let command_out = 'commands.sql'
+let table_lst = 'tables.tlst'
 
-export const SQL_IO = new DiscreetORMIO('commands.sql', table_lst);
+export const SQL_IO = new DiscreetORMIO(command_out, table_lst);
 // Applied on an example. 
 @Listener(new StoredClass(SQL_IO))
 class TaskRunner {

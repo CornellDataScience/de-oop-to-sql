@@ -1,3 +1,7 @@
 commands.sql
 tables.tlst
 .DS_Store
+DiscreetORM.js
+example.js
+*.map
+.vscode/launch.json
