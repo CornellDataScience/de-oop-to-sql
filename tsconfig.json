@@ -2,5 +2,8 @@
     "compilerOptions": {
         "target": "ES5",
         "experimentalDecorators": true
-    }
+    },
+    "files": [
+        "example.ts"
+    ]
 }

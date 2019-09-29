@@ -1,7 +1,8 @@
 commands.sql
 tables.tlst
-.DS_Store
+.idea/
+node_modules/
 DiscreetORM.js
 example.js
-*.map
-.vscode/launch.json
+.DS_Store
+*.js
