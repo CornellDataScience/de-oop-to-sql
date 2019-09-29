@@ -63,6 +63,7 @@ export function Listener<I extends ObjectListener<any>>(listener: I) {
 
     return function <T extends {new(...constructorArgs: any[]) }>(constructorFunction: T) {
         //new constructor function
+        let k = Object.getOwnPropertyDescriptors(constructorFunction)
         let newConstructorFunction: any = function (...args) {
             let func: any = function () {
                 return new constructorFunction(...args);
@@ -72,11 +73,11 @@ export function Listener<I extends ObjectListener<any>>(listener: I) {
             listener.onObjectCreation(result);
             return result;
         }
-        newConstructorFunction.prototype = constructorFunction.prototype;
+        // Object.defineProperties(newConstructorFunction, k);
         return newConstructorFunction;
     }
 }
-
+ 
 export class StoredClass implements ObjectListener<any>{
     discreet_sql_io : DiscreetORMIO;
 
@@ -103,7 +104,7 @@ export class StoredClass implements ObjectListener<any>{
         }
     }
 
-    tsTypeToSQLType(ts_type : String) : String{
+    tsTypeToSQLType(ts_type : String) : String {
         switch (ts_type) {
             case "String": {
                 return "VARCHAR(255)";
