@@ -52,6 +52,7 @@ export class DiscreetORMIO {
             throw 'DiscreetORM SQL Table write error. Could not write to file: ' + e;
         }
     }
+    
 }
 
 
@@ -95,12 +96,26 @@ export class StoredClass implements ObjectListener<any>{
         this.discreet_sql_io.writeSQL(command);
         this.discreet_sql_io.writeNewTable(table_name);
     }
+    addRow(obj: any) {
+                let table_name = obj.constructor.name;
+                let command = "INSERT INTO " + table_name + "\n" + "VALUES (";
+                var hash = require('object-hash');
+                command+= hash(obj) + ", ";
+                for (let attribute of Object.values(obj)){
+                    command += attribute + ", ";
+                }
+                command = command.substring(0,command.length - 2);
+                command += ")";
+                console.log(command);
+                this.discreet_sql_io.writeSQL(command);
+        }
 
     onObjectCreation(obj: any) {
         let table_name = obj.constructor.name;
         if (!this.discreet_sql_io.readTables().includes(table_name)){
             this.createNewTable(obj);
         }
+        this.addRow(obj);
     }
 
     tsTypeToSQLType(ts_type : String) : String{
