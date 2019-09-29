@@ -29,4 +29,4 @@ class StudentMethods {
 let ahad_student = new Student('Ahad', '2021', 0);
 let haram_student = new Student('Haram', '2020', 5.0);
 ahad_student.incrementYear();
-ahad_student = StudentMethods.updateGPA(ahad_student, 1.0)
+ahad_student = StudentMethods.updateGPA(ahad_student, 1.0);

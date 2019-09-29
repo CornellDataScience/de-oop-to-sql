@@ -1,2 +1,8 @@
 commands.sql
 tables.tlst
+.idea/
+node_modules/
+DiscreetORM.js
+example.js
+.DS_Store
+*.js
