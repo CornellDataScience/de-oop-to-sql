@@ -108,8 +108,7 @@ export class StoredClass implements ObjectListener<any>{
                 command += ")";
                 console.log(command);
                 this.discreet_sql_io.writeSQL(command);
-        }
-
+    }
     onObjectCreation(obj: any) {
         let table_name = obj.constructor.name;
         if (!this.discreet_sql_io.readTables().includes(table_name)){
