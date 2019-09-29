@@ -1,5 +1,6 @@
 const fs = require('fs');
 const sqlstring = require ("sqlstring");
+const hash = require('object-hash');
 
 export interface ObjectListener<T> {
     onObjectCreation(t: T): void;
@@ -53,6 +54,7 @@ export class DiscreetORMIO {
             throw 'DiscreetORM SQL Table write error. Could not write to file: ' + e;
         }
     }
+    
 }
 
 
@@ -99,17 +101,33 @@ export class StoredClass implements ObjectListener<any>{
 
         // escape all the user-generated column name strings
         let escaped_command = sqlstring.format(create_table_template, [table_name, cols]);
-
         console.log(escaped_command);
         this.discreet_sql_io.writeSQL(escaped_command);
         this.discreet_sql_io.writeNewTable(table_name);
+        
+       
     }
-
+    
+    addRow(obj: any) : void{
+        let add_row_template = "INSERT INTO ? VALUES (?";
+        let vals_list = [obj.constructor.name,hash(obj)];
+        for (let attribute of Object.values(obj)){
+            vals_list.push(attribute); 
+            add_row_template += ", ?";
+        }
+        add_row_template +=")"
+        let escaped_command = sqlstring.format(add_row_template,vals_list);
+        this.discreet_sql_io.writeSQL(escaped_command);
+        
+        console.log(escaped_command);
+    
+    }
     onObjectCreation(obj: any) {
         let table_name = obj.constructor.name;
         if (!this.discreet_sql_io.readTables().includes(table_name)){
             this.createNewTable(obj);
         }
+        this.addRow(obj);
     }
 
     tsTypeToSQLType(ts_type : String) : String{
