@@ -1,5 +1,6 @@
 const fs = require('fs');
 const sqlstring = require ("sqlstring");
+const hash = require('object-hash');
 
 export interface ObjectListener<T> {
     onObjectCreation(t: T): void;
@@ -100,23 +101,26 @@ export class StoredClass implements ObjectListener<any>{
 
         // escape all the user-generated column name strings
         let escaped_command = sqlstring.format(create_table_template, [table_name, cols]);
-
         console.log(escaped_command);
         this.discreet_sql_io.writeSQL(escaped_command);
         this.discreet_sql_io.writeNewTable(table_name);
+        
+       
     }
-    addRow(obj: any) {
-                let table_name = obj.constructor.name;
-                let command = "INSERT INTO " + table_name + "\n" + "VALUES (";
-                var hash = require('object-hash');
-                command+= hash(obj) + ", ";
-                for (let attribute of Object.values(obj)){
-                    command += attribute + ", ";
-                }
-                command = command.substring(0,command.length - 2);
-                command += ")";
-                console.log(command);
-                this.discreet_sql_io.writeSQL(command);
+    
+    addRow(obj: any) : void{
+        let add_row_template = "INSERT INTO ? VALUES (?";
+        let vals_list = [obj.constructor.name,hash(obj)];
+        for (let attribute of Object.values(obj)){
+            vals_list.push(attribute); 
+            add_row_template += ", ?";
+        }
+        add_row_template +=")"
+        let escaped_command = sqlstring.format(add_row_template,vals_list);
+        this.discreet_sql_io.writeSQL(escaped_command);
+        
+        console.log(escaped_command);
+    
     }
     onObjectCreation(obj: any) {
         let table_name = obj.constructor.name;
