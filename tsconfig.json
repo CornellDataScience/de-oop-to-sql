@@ -5,7 +5,6 @@
         "experimentalDecorators": true
     },
     "files": [
-        "DiscreetORM.ts",
         "example.ts"
     ]
 }

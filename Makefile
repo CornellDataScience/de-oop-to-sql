@@ -1,10 +1,19 @@
+.PHONY: clean build-js
+
+clean:
+	rm -f *.js
+	rm -f output/*
+
 run:
-	ts-node example.ts
+	./node_modules/ts-node/dist/bin.js example.ts
 
-buildjs:
-	tsc -p tsconfig.json
+clean-run: clean
+	./node_modules/ts-node/dist/bin.js example.ts
 
-runjs:
+build-js: clean
+	./node_modules/typescript/bin/tsc -p tsconfig.json
+
+run-js: build-js
 	node example.js
 
 dep:
