@@ -64,7 +64,7 @@ export function Listener<I extends ObjectListener<any>>(listener: I) {
 
     return function <T extends {new(...constructorArgs: any[]) }>(constructorFunction: T) {
         //new constructor function
-        let k = Object.getOwnPropertyDescriptors(constructorFunction)
+        let keys = Object.keys(constructorFunction)
         let newConstructorFunction: any = function (...args) {
             let func: any = function () {
                 return new constructorFunction(...args);
@@ -75,6 +75,9 @@ export function Listener<I extends ObjectListener<any>>(listener: I) {
             return result;
         };
         newConstructorFunction.prototype = constructorFunction.prototype;
+        keys.forEach(function (value) {
+            newConstructorFunction[value] = constructorFunction[value];
+        })
         return newConstructorFunction;
     }
 }
@@ -147,7 +150,6 @@ class TaskRunner {
 		this.taskStatus = 'incomplete';
         this.taskId = 0;
     }
-
 	f(number: Number) {
 		return number; 
 	}

@@ -20,28 +20,9 @@ class Student {
         return student;
     }
 }
-class Student2 {
-    studentName: string;
-	studentYear : string; 
-    studentGpa : number;
-    constructor(studentName: string, studentYear : string, studentGpa : number) {
-        this.studentName = studentName;
-        this.studentYear = studentYear;
-        this.studentGpa = studentGpa;
-    }
-
-	f(number: Number) {
-		return number; 
-    }
-    
-    static updateGPA(student : Student, new_grade : number) : Student {
-        student.studentGpa = student.studentGpa + new_grade;
-        return student;
-    }
-}
-
-let ahad_student = new Student('Ahad', '2021', 0);
-// let haram_student = new Student('Haram', '2020', 5.0);
-// ahad_student.f(3);
-Student.updateGPA(ahad_student, 2.5);
+let ahad_student = new Student('Ahad', '2021', 0.0);
+let haram_student = new Student('Haram', '2020', 5.0);
+Student.updateGPA(ahad_student, 2.0);
+Student.updateGPA(haram_student, 2.5);
 console.log(ahad_student);
+console.log(haram_student);
