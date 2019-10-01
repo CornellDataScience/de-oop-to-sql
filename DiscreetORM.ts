@@ -102,8 +102,7 @@ export function WriteToDB(discreet_sql_io : DiscreetORMIO){
             let result_table_name = result.constructor.name;
             let reference_id = result.discreet_orm_id;
             let delete_row_template = 'DELETE FROM ?? WHERE ??;'
-            // DELETE FROM table_name WHERE discreet_orm_id = <reference_id>
-            // addRow(result, discreet_sql_io) 
+
             let escaped_command = sqlstring.format(delete_row_template, [result_table_name, ("discreet_orm_id = " + reference_id)]);
             discreet_sql_io.writeSQL(escaped_command);
             addRow(result, discreet_sql_io);    
@@ -175,7 +174,6 @@ export class StoredClass implements ObjectListener<any>{
         
        
     }
-    
     
     onObjectCreation(obj: any) {
         let table_name = obj.constructor.name;
