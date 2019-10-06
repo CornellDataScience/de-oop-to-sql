@@ -1,10 +1,16 @@
 const fs = require('fs');
 const sqlstring = require ("sqlstring");
+const hash = require('object-hash');
 
 export interface ObjectListener<T> {
     onObjectCreation(t: T): void;
 }
 
+/**
+ * DiscreetORMIO defines a location to write SQL commands to. 
+ * A single instance of a DiscreetORMIO object is associated with 
+ * a single database. 
+ */
 export class DiscreetORMIO {
     sql_filepath : string;
     tlist_filepath : string;
@@ -32,8 +38,7 @@ export class DiscreetORMIO {
 
     writeSQL(output : string) : void {
         let formatted_output = '\n' + output;
-        let buffer = Buffer.alloc(formatted_output.length, formatted_output);
-        
+        let buffer = Buffer.from(formatted_output);
         try {
             fs.appendFileSync(this.sql_filepath, buffer);
             console.log('Wrote SQL commands to commands file.');
@@ -53,6 +58,7 @@ export class DiscreetORMIO {
             throw 'DiscreetORM SQL Table write error. Could not write to file: ' + e;
         }
     }
+    
 }
 
 
@@ -65,23 +71,88 @@ export function Listener<I extends ObjectListener<any>>(listener: I) {
     return function <T extends {new(...constructorArgs: any[]) }>(constructorFunction: T) {
         //new constructor function
         let keys = Object.keys(constructorFunction)
+        let extendedConstructorFunction = class extends constructorFunction{
+            // We add a discreet orm id with a default value of the empty string.
+            private discreet_orm_id = "";
+        } 
+        extendedConstructorFunction.prototype = constructorFunction.prototype;
         let newConstructorFunction: any = function (...args) {
             let func: any = function () {
-                return new constructorFunction(...args);
+                return new extendedConstructorFunction(...args);
             };
-            func.prototype = constructorFunction.prototype;
+            func.prototype = extendedConstructorFunction.prototype;
             let result: any = new func();
             listener.onObjectCreation(result);
             return result;
         };
-        newConstructorFunction.prototype = constructorFunction.prototype;
+        newConstructorFunction.prototype = extendedConstructorFunction.prototype;
         keys.forEach(function (value) {
             newConstructorFunction[value] = constructorFunction[value];
         })
         return newConstructorFunction;
     }
+} 
+    return newConstructorFunction;
+    }
 }
+
+/** Decorator to be applied to static functions that return a databased backed object. 
+ *  Takes the result of the function call and deletes the existing DB object and replaces it
+ *  with the new result. Associates DB objects by the secret field 'discreet_orm_id'. 
+ */
+export function WriteToDB(discreet_sql_io : DiscreetORMIO){
+    return function (target: Object, propertyKey: string | symbol, descriptor: PropertyDescriptor) {
+        const original_function = descriptor.value;
+        
+        descriptor.value = function(... args: any[]) {
+            let result = original_function.apply(this, args);
+            let result_table_name = result.constructor.name;
+            let reference_id = result.discreet_orm_id;
+            let delete_row_template = 'DELETE FROM ?? WHERE ??;'
+
+            let escaped_command = sqlstring.format(delete_row_template, [result_table_name, ("discreet_orm_id = " + reference_id)]);
+            discreet_sql_io.writeSQL(escaped_command);
+            addRow(result, discreet_sql_io);    
+        }
+
+        return descriptor;
+    }
+}
+
+/**
+ * addRow(obj, discreet_sql_io) adds the fields of obj to the DB. 
+ * Precondition: The class of obj must already have an associated table. 
+ * Does not add the hidden field 'discreet_orm_id' to the DB. 
+ * @param obj is the database-backed objected whose information is added to the DB.
+ * @param discreet_sql_io is the SQL interface.
+ */
+function addRow(obj: any, discreet_sql_io : DiscreetORMIO) : void {
+            let add_row_template = "INSERT INTO ? VALUES (?";
+            obj.discreet_orm_id = hash(obj);
+            let obj_hash = obj.discreet_orm_id;
+            let vals_list = [obj.constructor.name,  obj_hash];
+            for (let attribute of Object.keys(obj)){
+                if (attribute === "discreet_orm_id"){
+                    // We want to ignore the secreet discreet_orm_id, since discreet_orm_id is already hardcoded in.
+                    continue;
+                }
+                vals_list.push(obj[attribute]); 
+                add_row_template += ", ?";
+            }
+            add_row_template +=");"
+            let escaped_command = sqlstring.format(add_row_template,vals_list);
+            discreet_sql_io.writeSQL(escaped_command);
+            
+            console.log(escaped_command);
+        }
+/**
+ * The StoredClass ObjectListener is applied to any class, through Listener, who's instantiated 
+ * objects should be backed in the DB associated with the DiscreetORMIO passed
+ * into the constructor.
+ */
  
+  
+  
 export class StoredClass implements ObjectListener<any>{
     discreet_sql_io : DiscreetORMIO;
 
@@ -92,28 +163,35 @@ export class StoredClass implements ObjectListener<any>{
     createNewTable(obj: any) : void {
         let table_name = obj.constructor.name;
         let keys = Object.keys(obj);
-        let create_table_template = 'CREATE TABLE ?? (orm_id INT(255), ??);';
+        let create_table_template = 'CREATE TABLE ?? (discreet_orm_id VARCHAR(255), ??);';
 
         // create an array of column name-type strings
         let cols = new Array<string>(keys.length);
         for (let i = 0; i < keys.length; i++) {
+            if (keys[i] === "discreet_orm_id"){
+                // We want to ignore the secreet discreet_orm_id, since discreet_orm_id is already hardcoded in.
+                continue;
+            }
             let sql_type = this.tsTypeToSQLType(obj[keys[i]].constructor.name);
             cols[i] = `${keys[i]} ${sql_type}`;
         }
 
         // escape all the user-generated column name strings
         let escaped_command = sqlstring.format(create_table_template, [table_name, cols]);
-
         console.log(escaped_command);
         this.discreet_sql_io.writeSQL(escaped_command);
         this.discreet_sql_io.writeNewTable(table_name);
+        
+       
     }
-
+    
     onObjectCreation(obj: any) {
         let table_name = obj.constructor.name;
         if (!this.discreet_sql_io.readTables().includes(table_name)){
             this.createNewTable(obj);
         }
+        
+        addRow(obj, this.discreet_sql_io);
     }
 
     tsTypeToSQLType(ts_type : String) : String {
@@ -139,6 +217,7 @@ let command_out = 'output/commands.sql';
 let table_lst = 'output/tables.tlst';
 
 export const SQL_IO = new DiscreetORMIO(command_out, table_lst);
+
 // Applied on an example. 
 @Listener(new StoredClass(SQL_IO))
 class TaskRunner {
