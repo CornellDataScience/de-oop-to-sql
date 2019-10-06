@@ -15,6 +15,11 @@ class Student {
         // This is javascript big brain time.
         this.studentYear = +this.studentYear + 1 + ''; 
     }
+    @DiscreetORM.WriteToDB(DiscreetORM.SQL_IO)
+    static updateGPA(student : Student, new_grade : number) : Student {
+        student.studentGpa = student.studentGpa + new_grade;
+        return student;
+    }
 }
 
 
@@ -35,4 +40,6 @@ console.log(haram_student);
 // @ts-ignore
 console.log("Haram's hidden orm id: " + haram_student.discreet_orm_id);
 ahad_student.incrementYear();
-ahad_student = StudentMethods.updateGPA(ahad_student, 1.0);
+console.log(ahad_student)
+ahad_student = Student.updateGPA(ahad_student, 1.0);
+console.log(ahad_student)
