@@ -92,9 +92,6 @@ export function Listener<I extends ObjectListener<any>>(listener: I) {
         return newConstructorFunction;
     }
 } 
-    return newConstructorFunction;
-    }
-}
 
 /** Decorator to be applied to static functions that return a databased backed object. 
  *  Takes the result of the function call and deletes the existing DB object and replaces it
@@ -112,7 +109,8 @@ export function WriteToDB(discreet_sql_io : DiscreetORMIO){
 
             let escaped_command = sqlstring.format(delete_row_template, [result_table_name, ("discreet_orm_id = " + reference_id)]);
             discreet_sql_io.writeSQL(escaped_command);
-            addRow(result, discreet_sql_io);    
+            addRow(result, discreet_sql_io);
+            return result;    
         }
 
         return descriptor;
@@ -149,10 +147,7 @@ function addRow(obj: any, discreet_sql_io : DiscreetORMIO) : void {
  * The StoredClass ObjectListener is applied to any class, through Listener, who's instantiated 
  * objects should be backed in the DB associated with the DiscreetORMIO passed
  * into the constructor.
- */
- 
-  
-  
+ */  
 export class StoredClass implements ObjectListener<any>{
     discreet_sql_io : DiscreetORMIO;
 
@@ -181,8 +176,6 @@ export class StoredClass implements ObjectListener<any>{
         console.log(escaped_command);
         this.discreet_sql_io.writeSQL(escaped_command);
         this.discreet_sql_io.writeNewTable(table_name);
-        
-       
     }
     
     onObjectCreation(obj: any) {
