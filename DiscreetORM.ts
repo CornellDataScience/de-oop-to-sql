@@ -70,6 +70,7 @@ export function Listener<I extends ObjectListener<any>>(listener: I) {
 
     return function <T extends {new(...constructorArgs: any[]) }>(constructorFunction: T) {
         //new constructor function
+        let keys = Object.keys(constructorFunction)
         let extendedConstructorFunction = class extends constructorFunction{
             // We add a discreet orm id with a default value of the empty string.
             private discreet_orm_id = "";
@@ -85,7 +86,13 @@ export function Listener<I extends ObjectListener<any>>(listener: I) {
             return result;
         };
         newConstructorFunction.prototype = extendedConstructorFunction.prototype;
+        keys.forEach(function (value) {
+            newConstructorFunction[value] = constructorFunction[value];
+        })
         return newConstructorFunction;
+    }
+} 
+    return newConstructorFunction;
     }
 }
 
@@ -143,6 +150,9 @@ function addRow(obj: any, discreet_sql_io : DiscreetORMIO) : void {
  * objects should be backed in the DB associated with the DiscreetORMIO passed
  * into the constructor.
  */
+ 
+  
+  
 export class StoredClass implements ObjectListener<any>{
     discreet_sql_io : DiscreetORMIO;
 
@@ -184,7 +194,7 @@ export class StoredClass implements ObjectListener<any>{
         addRow(obj, this.discreet_sql_io);
     }
 
-    tsTypeToSQLType(ts_type : String) : String{
+    tsTypeToSQLType(ts_type : String) : String {
         switch (ts_type) {
             case "String": {
                 return "VARCHAR(255)";
@@ -219,7 +229,6 @@ class TaskRunner {
 		this.taskStatus = 'incomplete';
         this.taskId = 0;
     }
-
 	f(number: Number) {
 		return number; 
 	}

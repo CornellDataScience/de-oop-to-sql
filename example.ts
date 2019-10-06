@@ -26,9 +26,12 @@ class StudentMethods {
         return student;
     }
 }
-
-let ahad_student = new Student('Ahad', '2021', 0);
+let ahad_student = new Student('Ahad', '2021', 0.0);
 let haram_student = new Student('Haram', '2020', 5.0);
+Student.updateGPA(ahad_student, 2.0);
+Student.updateGPA(haram_student, 2.5);
+console.log(ahad_student);
+console.log(haram_student);
 // @ts-ignore
 console.log("Haram's hidden orm id: " + haram_student.discreet_orm_id);
 ahad_student.incrementYear();
