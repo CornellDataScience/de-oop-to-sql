@@ -161,21 +161,26 @@ export class StoredClass implements ObjectListener<any>{
     createNewTable(obj: any) : void {
         let table_name = obj.constructor.name;
         let keys = Object.keys(obj);
-        let create_table_template = 'CREATE TABLE ?? (discreet_orm_id VARCHAR(255), ??);';
+        let qmark_arr = new Array<String>(keys.length);
+        qmark_arr.fill('?? ?');
+        let qmark_str = qmark_arr.join(',');
+
+        let create_table_template = `CREATE TABLE ?? (orm_id INT(255), ${qmark_str});`;
 
         // create an array of column name-type strings
-        let cols = new Array<string>(keys.length);
+        let args = new Array(keys.length * 2 + 1);
+        args[0] = table_name;
         for (let i = 0; i < keys.length; i++) {
             if (keys[i] === "discreet_orm_id"){
                 // We want to ignore the secreet discreet_orm_id, since discreet_orm_id is already hardcoded in.
                 continue;
             }
-            let sql_type = this.tsTypeToSQLType(obj[keys[i]].constructor.name);
-            cols[i] = `${keys[i]} ${sql_type}`;
+            args[i*2 + 1] = keys[i];
+            args[i*2 + 2] = this.tsTypeToSQLType(obj[keys[i]].constructor.name);
         }
 
         // escape all the user-generated column name strings
-        let escaped_command = sqlstring.format(create_table_template, [table_name, cols]);
+        let escaped_command = sqlstring.format(create_table_template, args);
         console.log(escaped_command);
         this.discreet_sql_io.writeSQL(escaped_command);
         this.discreet_sql_io.writeNewTable(table_name);
@@ -192,19 +197,19 @@ export class StoredClass implements ObjectListener<any>{
         addRow(obj, this.discreet_sql_io);
     }
 
-    tsTypeToSQLType(ts_type : String) : String {
+    tsTypeToSQLType(ts_type : String) : Buffer{
         switch (ts_type) {
             case "String": {
-                return "VARCHAR(255)";
+                return sqlstring.raw("VARCHAR(255)");
             }
             case "Number" : {
-                return "INT(255)"
+                return sqlstring.raw("INT(255)");
             }
             case "number" : {
-                return "INT(255)"
+                return sqlstring.raw("INT(255)");
             }
             default : {
-                return "VARCHAR(255)"
+                return sqlstring.raw("VARCHAR(255)");
             }
         }
     }
