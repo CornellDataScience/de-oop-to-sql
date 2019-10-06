@@ -92,9 +92,7 @@ export function Listener<I extends ObjectListener<any>>(listener: I) {
         return newConstructorFunction;
     }
 } 
-    return newConstructorFunction;
-    }
-}
+
 
 /** Decorator to be applied to static functions that return a databased backed object. 
  *  Takes the result of the function call and deletes the existing DB object and replaces it
