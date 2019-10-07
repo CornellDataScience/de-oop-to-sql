@@ -109,8 +109,6 @@ export function WriteReturnToDB(discreet_sql_io : DiscreetORMIO){
             let escaped_command = sqlstring.format(delete_row_template, [result_table_name, ("discreet_orm_id = " + reference_id)]);
             discreet_sql_io.writeSQL(escaped_command);
             addRow(result, discreet_sql_io);
-            console.log('reul');
-            console.log(result);
             return result;    
         }
 
