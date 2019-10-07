@@ -71,7 +71,7 @@ export function Listener<I extends ObjectListener<any>>(listener: I) {
     return function <T extends {new(...constructorArgs: any[]) }>(constructorFunction: T) {
         //new constructor function
         let keys = Object.keys(constructorFunction)
-        let extendedConstructorFunction = class extends constructorFunction{
+        let extendedConstructorFunction = class extends constructorFunction {
             // We add a discreet orm id with a default value of the empty string.
             private discreet_orm_id = "";
         } 
@@ -92,16 +92,12 @@ export function Listener<I extends ObjectListener<any>>(listener: I) {
         return newConstructorFunction;
     }
 } 
-<<<<<<< HEAD
-
-=======
->>>>>>> de3e96747cbc9fdc44f6cb58654b094018808b24
 
 /** Decorator to be applied to static functions that return a databased backed object. 
  *  Takes the result of the function call and deletes the existing DB object and replaces it
  *  with the new result. Associates DB objects by the secret field 'discreet_orm_id'. 
  */
-export function WriteToDB(discreet_sql_io : DiscreetORMIO){
+export function WriteReturnToDB(discreet_sql_io : DiscreetORMIO){
     return function (target: Object, propertyKey: string | symbol, descriptor: PropertyDescriptor) {
         const original_function = descriptor.value;
         
@@ -110,13 +106,33 @@ export function WriteToDB(discreet_sql_io : DiscreetORMIO){
             let result_table_name = result.constructor.name;
             let reference_id = result.discreet_orm_id;
             let delete_row_template = 'DELETE FROM ?? WHERE ??;'
-
             let escaped_command = sqlstring.format(delete_row_template, [result_table_name, ("discreet_orm_id = " + reference_id)]);
             discreet_sql_io.writeSQL(escaped_command);
             addRow(result, discreet_sql_io);
+            console.log('reul');
+            console.log(result);
             return result;    
         }
 
+        return descriptor;
+    }
+}
+export function WriteModifiedToDB(discreet_sql_io : DiscreetORMIO){
+    return function (target: Object, propertyKey: string | symbol, descriptor: PropertyDescriptor) {
+        const original_function = descriptor.value;
+        
+        descriptor.value = function(... args: any[]) {
+            const binded_original_function = original_function.bind(this)
+            let result = binded_original_function(args)
+            // let result = original_function.apply(this, args);
+            let result_table_name = this.constructor.name
+            let reference_id = this['discreet_orm_id'];
+            let delete_row_template = 'DELETE FROM ?? WHERE ??;'
+            let escaped_command = sqlstring.format(delete_row_template, [result_table_name, ("discreet_orm_id = " + reference_id)]);
+            discreet_sql_io.writeSQL(escaped_command);
+            addRow(this, discreet_sql_io);
+            return result;    
+        }
         return descriptor;
     }
 }
@@ -143,10 +159,9 @@ function addRow(obj: any, discreet_sql_io : DiscreetORMIO) : void {
             }
             add_row_template +=");"
             let escaped_command = sqlstring.format(add_row_template,vals_list);
-            discreet_sql_io.writeSQL(escaped_command);
-            
+            discreet_sql_io.writeSQL(escaped_command);            
             console.log(escaped_command);
-        }
+}
 /**
  * The StoredClass ObjectListener is applied to any class, through Listener, who's instantiated 
  * objects should be backed in the DB associated with the DiscreetORMIO passed
