@@ -3,6 +3,7 @@ const sqlstring = require ("sqlstring");
 const hash = require('object-hash');
 
 export interface ObjectListener<T> {
+    discreet_sql_io : DiscreetORMIO;
     onObjectCreation(t: T): void;
 }
 
@@ -61,7 +62,24 @@ export class DiscreetORMIO {
     
 }
 
+/**
+ * deleteFromDatabase(delete_target : T, discreet_sql_io) removes the object delete_target from
+ * the database connected to discreet_sql_io. 
+ * Precondition: The database connected to discreet_sql_io has a table for the type T of delete 
+ * target. 
+ * @param delete_target 
+ * @param discreet_sql_io 
+ */
+export function deleteFromDatabase<T> (delete_target : T, discreet_sql_io : DiscreetORMIO) {
+    let result_table_name = <string> delete_target.constructor.name;
+    // @ts-ignore
+    let reference_id = <string> delete_target.discreet_orm_id;
+    let delete_row_template = 'DELETE FROM ?? WHERE ??;'
 
+    let escaped_command = sqlstring.format(delete_row_template, [result_table_name, ("discreet_orm_id = " + reference_id)]);
+    discreet_sql_io.writeSQL(escaped_command);   
+    return; 
+}
 
 /** 
  * Listener is a function that takes in an ObjectListener to the constructor function of Object of type T.

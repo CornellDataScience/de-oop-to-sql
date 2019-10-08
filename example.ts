@@ -41,4 +41,5 @@ console.log(haram_student);
 console.log("Haram's hidden orm id: " + haram_student.discreet_orm_id);
 ahad_student.incrementYear();
 ahad_student = StudentMethods.updateGPA(ahad_student, 1.0);
+DiscreetORM.deleteFromDatabase(ahad_student, DiscreetORM.SQL_IO);
 console.log(ahad_student);
