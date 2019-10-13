@@ -93,31 +93,56 @@ export function Listener<I extends ObjectListener<any>>(listener: I) {
     }
 }
 
-function writeToDB(applyResult: any, discreet_sql_io : DiscreetORMIO) {
-    let result_table_name = applyResult.constructor.name;
-    let reference_id = applyResult.discreet_orm_id;
-    // TODO: change this to an upsert
+/**
+ * Convenience method for upserting new rows or row modifications into the database
+ *
+ * @param toWrite
+ * @param discreet_sql_io
+ */
+function writeToDB(toWrite: any, discreet_sql_io : DiscreetORMIO) {
+    let result_table_name = toWrite.constructor.name;
+    let reference_id = toWrite.discreet_orm_id;
+    // TODO: change this to an update or insert instead of a delete
     let delete_row_template = 'DELETE FROM ?? WHERE ??;';
 
+    console.log([result_table_name, ("discreet_orm_id = " + reference_id)]);
     let escaped_command = sqlstring.format(delete_row_template, [result_table_name, ("discreet_orm_id = " + reference_id)]);
     discreet_sql_io.writeSQL(escaped_command);
-    addRow(applyResult, discreet_sql_io);
+    addRow(toWrite, discreet_sql_io);
 }
 
-/** Decorator to be applied to mutating functions that return a databased backed object.
+/** Decorator to be applied to static functions that return a databased backed object.
  *  Takes the result of the function call and deletes the existing DB object and replaces it
  *  with the new result. Associates DB objects by the secret field 'discreet_orm_id'. 
  */
-export function FunctionListener(discreet_sql_io : DiscreetORMIO){
+export function StaticListener(discreet_sql_io : DiscreetORMIO){
+    return function (target: Object, propertyKey: string | symbol, descriptor: PropertyDescriptor) {
+        const original_function = descriptor.value;
+
+        descriptor.value = function(... args: any[]) {
+            let result = original_function.apply(this, args);
+            writeToDB(result, discreet_sql_io); // write the state of the mutated object
+            return result;
+        };
+
+        return descriptor;
+    }
+}
+
+/**
+ * Decorator to be applied to instance functions operating on a database backed object. Updates the object's
+ * corresponding tuple in the database.
+ *
+ * @param discreet_sql_io
+ * @constructor
+ */
+export function InstanceListener(discreet_sql_io : DiscreetORMIO){
     return function (target: Object, propertyKey: string | symbol, descriptor: PropertyDescriptor) {
         const original_function = descriptor.value;
         
         descriptor.value = function(... args: any[]) {
             let result = original_function.apply(this, args);
-
-            // write the mutated object state
-            writeToDB(this, discreet_sql_io);
-
+            writeToDB(this, discreet_sql_io); // write the state of the mutated object
             return result;    
         };
 
