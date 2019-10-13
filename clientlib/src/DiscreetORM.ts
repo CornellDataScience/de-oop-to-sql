@@ -105,13 +105,13 @@ export function WriteToDB(discreet_sql_io : DiscreetORMIO){
             let result = original_function.apply(this, args);
             let result_table_name = result.constructor.name;
             let reference_id = result.discreet_orm_id;
-            let delete_row_template = 'DELETE FROM ?? WHERE ??;'
+            let delete_row_template = 'DELETE FROM ?? WHERE ??;';
 
             let escaped_command = sqlstring.format(delete_row_template, [result_table_name, ("discreet_orm_id = " + reference_id)]);
             discreet_sql_io.writeSQL(escaped_command);
             addRow(result, discreet_sql_io);
             return result;    
-        }
+        };
 
         return descriptor;
     }
