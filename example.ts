@@ -11,7 +11,7 @@ class Student {
         this.studentGpa = studentGpa;
     }
 
-    @DiscreetORM.InstanceListener
+    @DiscreetORM.FunctionListener(DiscreetORM.SQL_IO)
 	f(number: Number) {
 		return number; 
     }
@@ -30,7 +30,7 @@ class Student {
 
 class StudentMethods {
 
-    @DiscreetORM.WriteToDB(DiscreetORM.SQL_IO)
+    @DiscreetORM.FunctionListener(DiscreetORM.SQL_IO)
     static updateGPA(student : Student, new_grade : number) : Student {
         student.studentGpa = student.studentGpa + new_grade;
         return student;
@@ -41,8 +41,8 @@ let haram_student = new Student('Haram', '2020', 5.0);
 
 ahad_student.f(3);
 ahad_student.f(3);
-Student.updateGPA(ahad_student, 2.0);
-Student.updateGPA(haram_student, 2.5);
+// Student.updateGPA(ahad_student, 2.0);
+// Student.updateGPA(haram_student, 2.5);
 console.log(ahad_student);
 console.log(haram_student);
 // @ts-ignore
