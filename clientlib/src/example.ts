@@ -13,25 +13,15 @@ class Student {
 
     @DiscreetORM.InstanceListener(DiscreetORM.SQL_IO)
 	f(number: Number) {
-		return number; 
-    }
-
-    static updateGPA(student : Student, new_grade : number) : Student {
-        student.studentGpa = student.studentGpa + new_grade;
-        return student;
+		return number;
     }
 
 	incrementYear() : void {
         // This is javascript big brain time.
         this.studentYear = +this.studentYear + 1 + ''; 
     }
-}
 
-
-class StudentMethods {
-
-    @DiscreetORM.StaticListener(DiscreetORM.SQL_IO)
-    // TODO: this seems like an odd design - why would a static method return the student value? I think we need to consider this in more detail
+    @DiscreetORM.WriteReturnToDB(DiscreetORM.SQL_IO)
     static updateGPA(student : Student, new_grade : number) : Student {
         student.studentGpa = student.studentGpa + new_grade;
         return student;
@@ -49,5 +39,8 @@ console.log(haram_student);
 // @ts-ignore
 console.log("Haram's hidden orm id: " + haram_student.discreet_orm_id);
 ahad_student.incrementYear();
-ahad_student = StudentMethods.updateGPA(ahad_student, 1.0);
+ahad_student = Student.updateGPA(ahad_student, 1.0);
+ahad_student = Student.updateGPA(ahad_student, 1.5);
+console.log(ahad_student);
+DiscreetORM.deleteFromDatabase(ahad_student, DiscreetORM.SQL_IO);
 console.log(ahad_student);
