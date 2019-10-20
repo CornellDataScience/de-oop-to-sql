@@ -70,11 +70,11 @@ export function Listener<I extends ObjectListener<any>>(listener: I) {
 
     return function <T extends {new(...constructorArgs: any[]) }>(constructorFunction: T) {
         //new constructor function
-        let keys = Object.keys(constructorFunction)
+        let keys = Object.keys(constructorFunction);
         let extendedConstructorFunction = class extends constructorFunction{
             // We add a discreet orm id with a default value of the empty string.
             private discreet_orm_id = "";
-        } 
+        };
         extendedConstructorFunction.prototype = constructorFunction.prototype;
         let newConstructorFunction: any = function (...args) {
             let func: any = function () {
@@ -88,10 +88,10 @@ export function Listener<I extends ObjectListener<any>>(listener: I) {
         newConstructorFunction.prototype = extendedConstructorFunction.prototype;
         keys.forEach(function (value) {
             newConstructorFunction[value] = constructorFunction[value];
-        })
+        });
         return newConstructorFunction;
     }
-} 
+}
 
 /** Decorator to be applied to static functions that return a databased backed object. 
  *  Takes the result of the function call and deletes the existing DB object and replaces it
