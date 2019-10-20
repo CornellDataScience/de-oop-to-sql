@@ -129,11 +129,7 @@ function writeToDB(toWrite: any, discreet_sql_io : DiscreetORMIO) {
     addRow(toWrite, discreet_sql_io);
 }
 
-/** Decorator to be applied to static functions that return a databased backed object.
-=======
-
-/** Method decorator to be applied to methods that return a databased backed object. 
->>>>>>> master:clientlib/src/DiscreetORM.ts
+/** Method decorator to be applied to methods that return a databased backed object.
  *  Takes the result of the function call and deletes the existing DB object and replaces it
  *  with the new result. Associates DB objects by the secret field 'discreet_orm_id'. 
  * 
