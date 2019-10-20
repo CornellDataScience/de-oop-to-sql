@@ -88,8 +88,8 @@ export function Listener<I extends ObjectListener<any>>(listener: I) {
 
     return function <T extends {new(...constructorArgs: any[]) }>(constructorFunction: T) {
         //new constructor function
-        let keys = Object.keys(constructorFunction)
-        let extendedConstructorFunction = class extends constructorFunction {
+        let keys = Object.keys(constructorFunction);
+        let extendedConstructorFunction = class extends constructorFunction{
             // We add a discreet orm id with a default value of the empty string.
             private discreet_orm_id = "";
         };
