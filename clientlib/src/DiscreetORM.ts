@@ -111,11 +111,14 @@ export function Listener<I extends ObjectListener<any>>(listener: I) {
     }
 }
 
-/** Decorator to be applied to static functions that return a databased backed object. 
+/** Method decorator to be applied to methods that return a databased backed object. 
  *  Takes the result of the function call and deletes the existing DB object and replaces it
  *  with the new result. Associates DB objects by the secret field 'discreet_orm_id'. 
+ * 
+ * To be used on methods that returns a modified object
+ * Note: Will most likely be used on static methods
  */
-export function WriteToDB(discreet_sql_io : DiscreetORMIO){
+export function WriteReturnToDB(discreet_sql_io : DiscreetORMIO){
     return function (target: Object, propertyKey: string | symbol, descriptor: PropertyDescriptor) {
         const original_function = descriptor.value;
         
@@ -124,13 +127,37 @@ export function WriteToDB(discreet_sql_io : DiscreetORMIO){
             let result_table_name = result.constructor.name;
             let reference_id = result.discreet_orm_id;
             let delete_row_template = 'DELETE FROM ?? WHERE ??;'
-
             let escaped_command = sqlstring.format(delete_row_template, [result_table_name, ("discreet_orm_id = " + reference_id)]);
             discreet_sql_io.writeSQL(escaped_command);
             addRow(result, discreet_sql_io);
             return result;    
         }
 
+        return descriptor;
+    }
+}
+/** Method decorator to be applied to functions that modify a databased backed object, in place. 
+ *  Executes the function, modifying the object. The object's existing DB record is deleted and 
+ * replaced with the modified result of the function. Associates DB objects by the secret field 'discreet_orm_id'. 
+ * 
+ * To be used on methods that modifies object in place (generall)
+ * Note: Will generally be used on dynamic methods of the class
+ */
+export function WriteModifiedToDB(discreet_sql_io : DiscreetORMIO){
+    return function (target: Object, propertyKey: string | symbol, descriptor: PropertyDescriptor) {
+        const original_function = descriptor.value;
+        
+        descriptor.value = function(... args: any[]) {
+            const binded_original_function = original_function.bind(this)
+            let result = binded_original_function(args)
+            let result_table_name = this.constructor.name
+            let reference_id = this['discreet_orm_id'];
+            let delete_row_template = 'DELETE FROM ?? WHERE ??;'
+            let escaped_command = sqlstring.format(delete_row_template, [result_table_name, ("discreet_orm_id = " + reference_id)]);
+            discreet_sql_io.writeSQL(escaped_command);
+            addRow(this, discreet_sql_io);
+            return result;    
+        }
         return descriptor;
     }
 }
@@ -157,10 +184,9 @@ function addRow(obj: any, discreet_sql_io : DiscreetORMIO) : void {
             }
             add_row_template +=");"
             let escaped_command = sqlstring.format(add_row_template,vals_list);
-            discreet_sql_io.writeSQL(escaped_command);
-            
+            discreet_sql_io.writeSQL(escaped_command);            
             console.log(escaped_command);
-        }
+}
 /**
  * The StoredClass ObjectListener is applied to any class, through Listener, who's instantiated 
  * objects should be backed in the DB associated with the DiscreetORMIO passed
