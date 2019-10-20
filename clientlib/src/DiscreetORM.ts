@@ -118,15 +118,19 @@ export function Listener<I extends ObjectListener<any>>(listener: I) {
  * @param discreet_sql_io
  */
 function writeToDB(toWrite: any, discreet_sql_io : DiscreetORMIO) {
-    let result_table_name = toWrite.constructor.name;
-    let reference_id = toWrite.discreet_orm_id;
-    // TODO: maybe we should change this to an update or insert instead of a delete?
-    let delete_row_template = 'DELETE FROM ?? WHERE ??;';
+    // TODO: Object writing is a big feature so we need it in a separate feature
+    if(typeof(toWrite) != "function" || typeof(toWrite) != "undefined" || typeof(toWrite) != "object") {
+        let result_table_name = toWrite.constructor.name;
+        let reference_id = toWrite.discreet_orm_id;
+        // TODO: maybe we should change this to an update or insert instead of a delete?
+        let delete_row_template = 'DELETE FROM ?? WHERE ??;';
 
-    console.log([result_table_name, ("discreet_orm_id = " + reference_id)]);
-    let escaped_command = sqlstring.format(delete_row_template, [result_table_name, ("discreet_orm_id = " + reference_id)]);
-    discreet_sql_io.writeSQL(escaped_command);
-    addRow(toWrite, discreet_sql_io);
+        console.log([result_table_name, ("discreet_orm_id = " + reference_id)]);
+        let escaped_command = sqlstring.format(delete_row_template, [result_table_name, ("discreet_orm_id = " + reference_id)]);
+        discreet_sql_io.writeSQL(escaped_command);
+        addRow(toWrite, discreet_sql_io);
+    }
+
 }
 
 /** Method decorator to be applied to methods that return a databased backed object.

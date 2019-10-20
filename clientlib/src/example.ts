@@ -5,6 +5,7 @@ class Student {
     studentName: string;
 	studentYear : string; 
     studentGpa : number;
+    // anon = (a, b) => a + b;
     constructor(studentName: string, studentYear : string, studentGpa : number) {
         this.studentName = studentName;
         this.studentYear = studentYear;
@@ -27,9 +28,9 @@ class Student {
         return student;
     }
 }
+
 let ahad_student = new Student('Ahad', '2021', 0.0);
 let haram_student = new Student('Haram', '2020', 5.0);
-
 ahad_student.f(3);
 ahad_student.f(3);
 Student.updateGPA(ahad_student, 2.0);
