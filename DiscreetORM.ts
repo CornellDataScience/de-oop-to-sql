@@ -94,7 +94,7 @@ export function Listener<I extends ObjectListener<any>>(listener: I) {
 }
 
 /**
- * Convenience method for upserting new rows or row modifications into the database
+ * Convenience method for writing new rows or row modifications into the database
  *
  * @param toWrite
  * @param discreet_sql_io
@@ -102,7 +102,7 @@ export function Listener<I extends ObjectListener<any>>(listener: I) {
 function writeToDB(toWrite: any, discreet_sql_io : DiscreetORMIO) {
     let result_table_name = toWrite.constructor.name;
     let reference_id = toWrite.discreet_orm_id;
-    // TODO: change this to an update or insert instead of a delete
+    // TODO: maybe we should change this to an update or insert instead of a delete?
     let delete_row_template = 'DELETE FROM ?? WHERE ??;';
 
     console.log([result_table_name, ("discreet_orm_id = " + reference_id)]);
