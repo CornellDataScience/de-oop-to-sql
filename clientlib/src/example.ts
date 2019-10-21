@@ -31,7 +31,16 @@ class Student {
 
 let ahad_student = new Student('Ahad', '2021', 0.0);
 let haram_student = new Student('Haram', '2020', 5.0);
-ahad_student.f(3);
+Object.defineProperty(ahad_student, 'enumerableAttributeNotToBeAdded', {
+    value: (a, b) => a + b ,
+    writable: false,
+    enumerable: true
+  });
+  Object.defineProperty(ahad_student, 'nonEnumerableAttributeNotToBeAdded', {
+    value: (a, b) => a - b ,
+    writable: false,
+    enumerable: false
+  });
 ahad_student.f(3);
 Student.updateGPA(ahad_student, 2.0);
 Student.updateGPA(haram_student, 2.5);
@@ -40,7 +49,6 @@ console.log(haram_student);
 // @ts-ignore
 console.log("Haram's hidden orm id: " + haram_student.discreet_orm_id);
 ahad_student.incrementYear();
-ahad_student = Student.updateGPA(ahad_student, 1.0);
 ahad_student = Student.updateGPA(ahad_student, 1.5);
 console.log(ahad_student);
 DiscreetORM.deleteFromDatabase(ahad_student, DiscreetORM.SQL_IO);
