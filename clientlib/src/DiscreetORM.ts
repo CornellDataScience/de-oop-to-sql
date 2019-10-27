@@ -120,12 +120,8 @@ export function Listener<I extends ObjectListener<any>>(listener: I) {
 function writeToDB(toWrite: any, discreet_sql_io : DiscreetORMIO) {
     let result_table_name = toWrite.constructor.name;
     let reference_id = toWrite.discreet_orm_id;
-    // TODO: maybe we should change this to an update or insert instead of a delete?
-    let delete_row_template = 'DELETE FROM ?? WHERE ??;';
 
     console.log([result_table_name, ("discreet_orm_id = " + reference_id)]);
-    let escaped_command = sqlstring.format(delete_row_template, [result_table_name, ("discreet_orm_id = " + reference_id)]);
-    discreet_sql_io.writeSQL(escaped_command);
     addRow(toWrite, discreet_sql_io);
 }
 
@@ -170,31 +166,6 @@ export function InstanceListener(discreet_sql_io : DiscreetORMIO){
         return descriptor;
     }
 }
-/** Method decorator to be applied to functions that modify a databased backed object, in place. 
- *  Executes the function, modifying the object. The object's existing DB record is deleted and 
- * replaced with the modified result of the function. Associates DB objects by the secret field 'discreet_orm_id'. 
- * 
- * To be used on methods that modifies object in place (generall)
- * Note: Will generally be used on dynamic methods of the class
- */
-export function WriteModifiedToDB(discreet_sql_io : DiscreetORMIO){
-    return function (target: Object, propertyKey: string | symbol, descriptor: PropertyDescriptor) {
-        const original_function = descriptor.value;
-        
-        descriptor.value = function(... args: any[]) {
-            const binded_original_function = original_function.bind(this)
-            let result = binded_original_function(args)
-            let result_table_name = this.constructor.name
-            let reference_id = this['discreet_orm_id'];
-            let delete_row_template = 'DELETE FROM ?? WHERE ??;'
-            let escaped_command = sqlstring.format(delete_row_template, [result_table_name, ("discreet_orm_id = " + reference_id)]);
-            discreet_sql_io.writeSQL(escaped_command);
-            addRow(this, discreet_sql_io);
-            return result;    
-        }
-        return descriptor;
-    }
-}
 
 /**
  * addRow(obj, discreet_sql_io) adds the fields of obj to the DB. 
@@ -204,7 +175,7 @@ export function WriteModifiedToDB(discreet_sql_io : DiscreetORMIO){
  * @param discreet_sql_io is the SQL interface.
  */
 function addRow(obj: any, discreet_sql_io : DiscreetORMIO) : void {
-            let add_row_template = "INSERT INTO ? VALUES (?";
+            let add_row_template = "REPLACE INTO ? VALUES (?";
             obj.discreet_orm_id = hash(obj);
             let obj_hash = obj.discreet_orm_id;
             let vals_list = [obj.constructor.name,  obj_hash];
@@ -221,6 +192,7 @@ function addRow(obj: any, discreet_sql_io : DiscreetORMIO) : void {
             discreet_sql_io.writeSQL(escaped_command);            
             console.log(escaped_command);
 }
+
 /**
  * The StoredClass ObjectListener is applied to any class, through Listener, who's instantiated 
  * objects should be backed in the DB associated with the DiscreetORMIO passed
