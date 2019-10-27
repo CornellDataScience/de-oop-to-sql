@@ -18,6 +18,11 @@ export interface DiscreetORMIO {
     writeNewTable(table_name : string) : void;
 }
 
+/** 
+ * [command] is the type for sql commands.
+ */
+export type command = string
+
 export class DatabaseORMIO implements DiscreetORMIO {
     sql_filepath : string;
     tlist_filepath : string;
@@ -201,19 +206,12 @@ export function WriteModifiedToDB(discreet_sql_io : DiscreetORMIO){
     }
 }
 
-/**
- * addRow(obj, discreet_sql_io) adds the fields of obj to the DB. 
- * Precondition: The class of obj must already have an associated table. 
- * Does not add the hidden field 'discreet_orm_id' to the DB. 
- * @param obj is the database-backed objected whose information is added to the DB.
- * @param discreet_sql_io is the SQL interface.
- */
-function addRow(obj: any, discreet_sql_io : DiscreetORMIO) : void {
-    let add_row_template = "INSERT INTO ? VALUES (?";
+export function commandForAddRow(obj: any) : command{
+    let add_row_template = "INSERT INTO ? VALUES (?";
     obj.discreet_orm_id = hash(obj);
     let obj_hash = obj.discreet_orm_id;
     let vals_list = [obj.constructor.name,  obj_hash];
-    let forbidden_attributes = ["discreet_orm_io"];
+    let forbidden_attributes = ["discreet_orm_id"];
     let forbidden_attribute_types = ["function", "undefined", "object"];
     for (let attribute of Object.keys(obj)){
             // TODO: Object writing is a big feature so we need it in a separate feature
@@ -224,8 +222,20 @@ function addRow(obj: any, discreet_sql_io : DiscreetORMIO) : void {
     }
     add_row_template +=");";
     let escaped_command = sqlstring.format(add_row_template,vals_list);
-    discreet_sql_io.writeSQL(escaped_command);            
-    console.log(escaped_command);
+    return escaped_command;
+}
+
+/**
+ * addRow(obj, discreet_sql_io) adds the fields of obj to the DB. 
+ * Precondition: The class of obj must already have an associated table. 
+ * Does not add the hidden field 'discreet_orm_id' to the DB. 
+ * @param obj is the database-backed objected whose information is added to the DB.
+ * @param discreet_sql_io is the SQL interface.
+ */
+function addRow(obj: any, discreet_sql_io : DiscreetORMIO) : void {
+    let sql_command = commandForAddRow(obj);
+    discreet_sql_io.writeSQL(sql_command);            
+    console.log(sql_command);
 }
 
 /**
@@ -240,9 +250,7 @@ export class StoredClass implements ObjectListener<any>{
         this.discreet_sql_io = sql_out;
     }
 
-    createNewTable(obj: any) : void {
-        let table_name = obj.constructor.name;
-        let keys = Object.keys(obj);
+    commandForNewTable(table_name: string, keys: string [], obj: any) : command {
         // create an array of column name-type strings
         let args = new Array(1);
         args[0] = table_name;
@@ -263,9 +271,16 @@ export class StoredClass implements ObjectListener<any>{
         qmark_arr.fill('?? ?');
         let qmark_str = qmark_arr.join(',');
         let create_table_template = `CREATE TABLE ?? (orm_id INT(255), ${qmark_str});`;
-        let escaped_command = sqlstring.format(create_table_template, args);
-        console.log(escaped_command);
-        this.discreet_sql_io.writeSQL(escaped_command);
+        let escaped_command = <string> sqlstring.format(create_table_template, args);
+        return escaped_command;
+    }
+
+    createNewTable(obj: any) : void {
+        let table_name = obj.constructor.name;
+        let keys = Object.keys(obj);
+        let sql_command = this.commandForNewTable(table_name, keys, obj);
+        console.log(sql_command);
+        this.discreet_sql_io.writeSQL(sql_command);
         this.discreet_sql_io.writeNewTable(table_name);
     }
     
