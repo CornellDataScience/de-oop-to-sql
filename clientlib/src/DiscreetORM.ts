@@ -48,6 +48,10 @@ export class DiscreetORMIO {
         }
     }
 
+    insertAndReturnID(insertion: string) : number {
+        return 0
+    }
+
     writeNewTable(table_name : string) : void {
         let formatted_output = '\n' + table_name;
         let buffer = Buffer.alloc(formatted_output.length, formatted_output);
@@ -175,15 +179,14 @@ export function InstanceListener(discreet_sql_io : DiscreetORMIO){
  * @param discreet_sql_io is the SQL interface.
  */
 function addRow(obj: any, discreet_sql_io : DiscreetORMIO) : void {
-    let add_row_template = "INSERT INTO ? VALUES (?";
-    obj.discreet_orm_id = hash(obj);
-    let obj_hash = obj.discreet_orm_id;
-    let vals_list = [obj.constructor.name,  obj_hash];
+    let add_row_template = "INSERT INTO ? VALUES (";
+    
+    let vals_list = [obj.constructor.name];
     for (let attribute of Object.keys(obj)){
             // TODO: Object writing is a big feature so we need it in a separate feature
         if(typeof(obj[attribute]) != "function" && typeof(obj[attribute]) != "undefined" && typeof(obj[attribute]) != "object") {
             if (attribute === "discreet_orm_id"){
-             // We want to ignore the secreet discreet_orm_id, since discreet_orm_id is already hardcoded in.
+             // We want to ignore the secret discreet_orm_id, since discreet_orm_id is already hardcoded in.
                 continue;
             }
             vals_list.push(obj[attribute]); 
@@ -220,8 +223,8 @@ export class StoredClass implements ObjectListener<any>{
             if(typeof(obj[keys[i]]) != "function" && typeof(obj[keys[i]]) != "undefined" && typeof(obj[keys[i]]) != "object") {
                 // We want to ignore the secret discreet_orm_id, since discreet_orm_id is already hardcoded in.
                 if (keys[i] != "discreet_orm_id"){
-                    args.push(keys[i])
-                    args.push(this.tsTypeToSQLType(obj[keys[i]].constructor.name))
+                    args.push(keys[i]);
+                    args.push(this.tsTypeToSQLType(obj[keys[i]].constructor.name));
                     count++;
                 }
             }
@@ -230,7 +233,7 @@ export class StoredClass implements ObjectListener<any>{
         let qmark_arr = new Array<String>(count);
         qmark_arr.fill('?? ?');
         let qmark_str = qmark_arr.join(',');
-        let create_table_template = `CREATE TABLE ?? (orm_id INT(255), ${qmark_str});`;
+        let create_table_template = `CREATE TABLE ?? (orm_id INT(255) PRIMARY KEY NOT NULL AUTO_INCREMENT, ${qmark_str});`;
         let escaped_command = sqlstring.format(create_table_template, args);
         console.log(escaped_command);
         this.discreet_sql_io.writeSQL(escaped_command);
