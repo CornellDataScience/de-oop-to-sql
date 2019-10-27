@@ -1,4 +1,6 @@
 import * as DiscreetORM from './DiscreetORM'
+import "reflect-metadata";
+
 
 @DiscreetORM.Listener(new DiscreetORM.StoredClass(DiscreetORM.SQL_IO))
 class Student {
@@ -41,15 +43,25 @@ Object.defineProperty(ahad_student, 'enumerableAttributeNotToBeAdded', {
     writable: false,
     enumerable: false
   });
-ahad_student.f(3);
-Student.updateGPA(ahad_student, 2.0);
-Student.updateGPA(haram_student, 2.5);
-console.log(ahad_student);
-console.log(haram_student);
-// @ts-ignore
-console.log("Haram's hidden orm id: " + haram_student.discreet_orm_id);
-ahad_student.incrementYear();
-ahad_student = Student.updateGPA(ahad_student, 1.5);
-console.log(ahad_student);
-DiscreetORM.deleteFromDatabase(ahad_student, DiscreetORM.SQL_IO);
-console.log(ahad_student);
+// ahad_student.f(3);
+// Student.updateGPA(ahad_student, 2.0);
+// Student.updateGPA(haram_student, 2.5);
+// console.log(ahad_student);
+// console.log(haram_student);
+// // @ts-ignore
+// console.log("Haram's hidden orm id: " + haram_student.discreet_orm_id);
+// ahad_student.incrementYear();
+// ahad_student = Student.updateGPA(ahad_student, 1.5);
+// console.log(ahad_student);
+// DiscreetORM.deleteFromDatabase(ahad_student, DiscreetORM.SQL_IO);
+// console.log(ahad_student);
+
+class C {
+    // @Reflect.metadata(metadataKey, metadataValue)
+    method() {
+    }
+  }
+  let obj = new C();
+  Reflect.defineMetadata("metadataKey", "metadataValue", C.prototype, "method");
+  let metadataValue = Reflect.getMetadata("metadataKey", obj, "method");
+  console.log(metadataValue)
