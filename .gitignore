@@ -1,5 +1,3 @@
-commands.sql
-tables.tlst
 .idea/
 node_modules/
 DiscreetORM.js
