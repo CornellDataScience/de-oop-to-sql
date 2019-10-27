@@ -213,13 +213,11 @@ function addRow(obj: any, discreet_sql_io : DiscreetORMIO) : void {
     obj.discreet_orm_id = hash(obj);
     let obj_hash = obj.discreet_orm_id;
     let vals_list = [obj.constructor.name,  obj_hash];
+    let forbidden_attributes = ["discreet_orm_io"];
+    let forbidden_attribute_types = ["function", "undefined", "object"];
     for (let attribute of Object.keys(obj)){
             // TODO: Object writing is a big feature so we need it in a separate feature
-        if(typeof(obj[attribute]) != "function" && typeof(obj[attribute]) != "undefined" && typeof(obj[attribute]) != "object") {
-            if (attribute === "discreet_orm_id"){
-             // We want to ignore the secreet discreet_orm_id, since discreet_orm_id is already hardcoded in.
-                continue;
-            }
+        if(!forbidden_attribute_types.includes(typeof(obj[attribute])) && !forbidden_attributes.includes(attribute)) {
             vals_list.push(obj[attribute]); 
             add_row_template += ", ?";
         }
