@@ -12,7 +12,13 @@ export interface ObjectListener<T> {
  * A single instance of a DiscreetORMIO object is associated with 
  * a single database. 
  */
-export class DiscreetORMIO {
+export interface DiscreetORMIO {
+    readTables() : string [];
+    writeSQL(output: string): void;
+    writeNewTable(table_name : string) : void;
+}
+
+export class DatabaseORMIO implements DiscreetORMIO {
     sql_filepath : string;
     tlist_filepath : string;
     FILE_ENCODING = 'utf8';
@@ -296,7 +302,7 @@ export class StoredClass implements ObjectListener<any>{
 let command_out = 'output/commands.sql';
 let table_lst = 'output/tables.tlst';
 
-export const SQL_IO = new DiscreetORMIO(command_out, table_lst);
+export const SQL_IO = new DatabaseORMIO(command_out, table_lst);
 
 // Applied on an example. 
 @Listener(new StoredClass(SQL_IO))
