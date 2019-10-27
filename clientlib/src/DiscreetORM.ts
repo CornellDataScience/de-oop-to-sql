@@ -175,22 +175,25 @@ export function InstanceListener(discreet_sql_io : DiscreetORMIO){
  * @param discreet_sql_io is the SQL interface.
  */
 function addRow(obj: any, discreet_sql_io : DiscreetORMIO) : void {
-            let add_row_template = "REPLACE INTO ? VALUES (?";
-            obj.discreet_orm_id = hash(obj);
-            let obj_hash = obj.discreet_orm_id;
-            let vals_list = [obj.constructor.name,  obj_hash];
-            for (let attribute of Object.keys(obj)){
-                if (attribute === "discreet_orm_id"){
-                    // We want to ignore the secreet discreet_orm_id, since discreet_orm_id is already hardcoded in.
-                    continue;
-                }
-                vals_list.push(obj[attribute]); 
-                add_row_template += ", ?";
-            }
-            add_row_template +=");";
-            let escaped_command = sqlstring.format(add_row_template,vals_list);
-            discreet_sql_io.writeSQL(escaped_command);            
-            console.log(escaped_command);
+    let add_row_template = "INSERT INTO ? VALUES (?";
+    obj.discreet_orm_id = hash(obj);
+    let obj_hash = obj.discreet_orm_id;
+    let vals_list = [obj.constructor.name,  obj_hash];
+    for (let attribute of Object.keys(obj)){
+            // TODO: Object writing is a big feature so we need it in a separate feature
+        if(typeof(obj[attribute]) != "function" && typeof(obj[attribute]) != "undefined" && typeof(obj[attribute]) != "object") {
+            if (attribute === "discreet_orm_id"){
+             // We want to ignore the secreet discreet_orm_id, since discreet_orm_id is already hardcoded in.
+                continue;
+            }
+            vals_list.push(obj[attribute]); 
+            add_row_template += ", ?";
+        }
+    }
+    add_row_template +=");";
+    let escaped_command = sqlstring.format(add_row_template,vals_list);
+    discreet_sql_io.writeSQL(escaped_command);            
+    console.log(escaped_command);
 }
 
 /**
@@ -208,25 +211,26 @@ export class StoredClass implements ObjectListener<any>{
     createNewTable(obj: any) : void {
         let table_name = obj.constructor.name;
         let keys = Object.keys(obj);
-        let qmark_arr = new Array<String>(keys.length);
+        // create an array of column name-type strings
+        let args = new Array(1);
+        args[0] = table_name;
+        //used to keep track of the actual 'real' attributes 
+        let count = 0;
+        for (let i = 0; i < keys.length; i++) {
+            if(typeof(obj[keys[i]]) != "function" && typeof(obj[keys[i]]) != "undefined" && typeof(obj[keys[i]]) != "object") {
+                // We want to ignore the secret discreet_orm_id, since discreet_orm_id is already hardcoded in.
+                if (keys[i] != "discreet_orm_id"){
+                    args.push(keys[i])
+                    args.push(this.tsTypeToSQLType(obj[keys[i]].constructor.name))
+                    count++;
+                }
+            }
+        }
+        // escape all the user-generated column name strings
+        let qmark_arr = new Array<String>(count);
         qmark_arr.fill('?? ?');
         let qmark_str = qmark_arr.join(',');
-
         let create_table_template = `CREATE TABLE ?? (orm_id INT(255), ${qmark_str});`;
-
-        // create an array of column name-type strings
-        let args = new Array(keys.length * 2 + 1);
-        args[0] = table_name;
-        for (let i = 0; i < keys.length; i++) {
-            if (keys[i] === "discreet_orm_id"){
-                // We want to ignore the secreet discreet_orm_id, since discreet_orm_id is already hardcoded in.
-                continue;
-            }
-            args[i*2 + 1] = keys[i];
-            args[i*2 + 2] = this.tsTypeToSQLType(obj[keys[i]].constructor.name);
-        }
-
-        // escape all the user-generated column name strings
         let escaped_command = sqlstring.format(create_table_template, args);
         console.log(escaped_command);
         this.discreet_sql_io.writeSQL(escaped_command);
