@@ -71,6 +71,13 @@ export class DiscreetORMIO {
         return 
     }
     
+    /** 
+     * reconstructObj(entry : DBRowResult) creates an object of type T from a row 
+     * entry of that corresponding class database and returns it.
+    */
+    reconstructObj<T> (entry : DBRowResult) : T {
+        return
+    }
 }
 
 /**
@@ -233,6 +240,22 @@ function addRow(obj: any, discreet_sql_io : DiscreetORMIO) : void {
     let escaped_command = sqlstring.format(add_row_template,vals_list);
     discreet_sql_io.writeSQL(escaped_command);            
     console.log(escaped_command);
+}
+
+/** Queries the database to search for all objects of the 
+ * specified class to reconstruct them into TypeScript objects. 
+ */
+function queryEntireClass<T> (class_name : String, discreet_sql_io : DiscreetORMIO) : Array<T> {
+    let escaped_command = sqlstring.format("SELECT * FROM " + class_name);
+    let table = discreet_sql_io.readFromDB(escaped_command);
+    let query_result = new Array<T>();
+
+    table.forEach(function (object_entry) {
+        let obj = discreet_sql_io.reconstructObj<T>(object_entry);
+        query_result.push(obj);
+    });
+
+    return query_result;
 }
 
 /**
