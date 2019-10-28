@@ -18,6 +18,8 @@ export interface DiscreetORMIO {
     readTables() : string [];
     writeSQL(output: string): void;
     writeNewTable(table_name : string) : void;
+    readFromDB(command : string) : Array<DBRowResult>;
+    reconstructObj<T> (entry : DBRowResult) : T;
 }
 
 /** 
