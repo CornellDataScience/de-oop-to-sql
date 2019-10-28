@@ -14,7 +14,18 @@ export type DBRowResult = Array<string>;
  * A single instance of a DiscreetORMIO object is associated with 
  * a single database. 
  */
-export class DiscreetORMIO {
+export interface DiscreetORMIO {
+    readTables() : string [];
+    writeSQL(output: string): void;
+    writeNewTable(table_name : string) : void;
+}
+
+/** 
+ * [command] is the type for sql commands.
+ */
+export type command = string
+
+export class DatabaseORMIO implements DiscreetORMIO {
     sql_filepath : string;
     tlist_filepath : string;
     FILE_ENCODING = 'utf8';
@@ -213,6 +224,25 @@ export function WriteModifiedToDB(discreet_sql_io : DiscreetORMIO){
     }
 }
 
+export function commandForAddRow(obj: any) : command{
+    let add_row_template = "INSERT INTO ? VALUES (?";
+    obj.discreet_orm_id = hash(obj);
+    let obj_hash = obj.discreet_orm_id;
+    let vals_list = [obj.constructor.name,  obj_hash];
+    let forbidden_attributes = ["discreet_orm_id"];
+    let forbidden_attribute_types = ["function", "undefined", "object"];
+    for (let attribute of Object.keys(obj)){
+            // TODO: Object writing is a big feature so we need it in a separate feature
+        if(!forbidden_attribute_types.includes(typeof(obj[attribute])) && !forbidden_attributes.includes(attribute)) {
+            vals_list.push(obj[attribute]); 
+            add_row_template += ", ?";
+        }
+    }
+    add_row_template +=");";
+    let escaped_command = sqlstring.format(add_row_template,vals_list);
+    return escaped_command;
+}
+
 /**
  * addRow(obj, discreet_sql_io) adds the fields of obj to the DB. 
  * Precondition: The class of obj must already have an associated table. 
@@ -221,25 +251,9 @@ export function WriteModifiedToDB(discreet_sql_io : DiscreetORMIO){
  * @param discreet_sql_io is the SQL interface.
  */
 function addRow(obj: any, discreet_sql_io : DiscreetORMIO) : void {
-    let add_row_template = "INSERT INTO ? VALUES (?";
-    obj.discreet_orm_id = hash(obj);
-    let obj_hash = obj.discreet_orm_id;
-    let vals_list = [obj.constructor.name,  obj_hash];
-    for (let attribute of Object.keys(obj)){
-            // TODO: Object writing is a big feature so we need it in a separate feature
-        if(typeof(obj[attribute]) != "function" && typeof(obj[attribute]) != "undefined" && typeof(obj[attribute]) != "object") {
-            if (attribute === "discreet_orm_id"){
-             // We want to ignore the secreet discreet_orm_id, since discreet_orm_id is already hardcoded in.
-                continue;
-            }
-            vals_list.push(obj[attribute]); 
-            add_row_template += ", ?";
-        }
-    }
-    add_row_template +=");";
-    let escaped_command = sqlstring.format(add_row_template,vals_list);
-    discreet_sql_io.writeSQL(escaped_command);            
-    console.log(escaped_command);
+    let sql_command = commandForAddRow(obj);
+    discreet_sql_io.writeSQL(sql_command);            
+    console.log(sql_command);
 }
 
 /** Queries the database to search for all objects of the 
@@ -270,9 +284,7 @@ export class StoredClass implements ObjectListener<any>{
         this.discreet_sql_io = sql_out;
     }
 
-    createNewTable(obj: any) : void {
-        let table_name = obj.constructor.name;
-        let keys = Object.keys(obj);
+    commandForNewTable(table_name: string, keys: string [], obj: any) : command {
         // create an array of column name-type strings
         let args = new Array(1);
         args[0] = table_name;
@@ -293,9 +305,16 @@ export class StoredClass implements ObjectListener<any>{
         qmark_arr.fill('?? ?');
         let qmark_str = qmark_arr.join(',');
         let create_table_template = `CREATE TABLE ?? (orm_id INT(255), ${qmark_str});`;
-        let escaped_command = sqlstring.format(create_table_template, args);
-        console.log(escaped_command);
-        this.discreet_sql_io.writeSQL(escaped_command);
+        let escaped_command = <string> sqlstring.format(create_table_template, args);
+        return escaped_command;
+    }
+
+    createNewTable(obj: any) : void {
+        let table_name = obj.constructor.name;
+        let keys = Object.keys(obj);
+        let sql_command = this.commandForNewTable(table_name, keys, obj);
+        console.log(sql_command);
+        this.discreet_sql_io.writeSQL(sql_command);
         this.discreet_sql_io.writeNewTable(table_name);
     }
     
@@ -330,7 +349,7 @@ export class StoredClass implements ObjectListener<any>{
 let command_out = 'output/commands.sql';
 let table_lst = 'output/tables.tlst';
 
-export const SQL_IO = new DiscreetORMIO(command_out, table_lst);
+export const SQL_IO = new DatabaseORMIO(command_out, table_lst);
 
 // Applied on an example. 
 @Listener(new StoredClass(SQL_IO))
