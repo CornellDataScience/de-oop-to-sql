@@ -7,6 +7,8 @@ export interface ObjectListener<T> {
     onObjectCreation(t: T): void;
 }
 
+export type DBRowResult = Array<string>;
+
 /**
  * DiscreetORMIO defines a location to write SQL commands to. 
  * A single instance of a DiscreetORMIO object is associated with 
@@ -58,6 +60,15 @@ export class DiscreetORMIO {
         } catch (e) {
             throw 'DiscreetORM SQL Table write error. Could not write to file: ' + e;
         }
+    }
+
+    /** 
+     * readFromDB(command : string, discreet_sql_io) passes a string command into the database
+     * and returns an array of type DBRowResult (which is an array of strings), populated with 
+     * entries of objects as specified in the command string.
+    */
+    readFromDB(command : string) : Array<DBRowResult> {
+        return 
     }
     
 }
@@ -225,9 +236,9 @@ function addRow(obj: any, discreet_sql_io : DiscreetORMIO) : void {
 }
 
 /**
- * The StoredClass ObjectListener is applied to any class, through Listener, who's instantiated 
- * objects should be backed in the DB associated with the DiscreetORMIO passed
- * into the constructor.
+ * The StoredClass ObjectListener is applied to any class, through Listener, whose 
+ * instantiated objects should be backed in the DB associated with the DiscreetORMIO 
+ * passed into the constructor.
  */
 export class StoredClass implements ObjectListener<any>{
     discreet_sql_io : DiscreetORMIO;
