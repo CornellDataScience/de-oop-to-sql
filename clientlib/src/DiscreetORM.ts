@@ -180,6 +180,7 @@ export function InstanceListener(discreet_sql_io : DiscreetORMIO){
         return descriptor;
     }
 }
+
 /** Method decorator to be applied to functions that modify a databased backed object, in place. 
  *  Executes the function, modifying the object. The object's existing DB record is deleted and 
  * replaced with the modified result of the function. Associates DB objects by the secret field 'discreet_orm_id'. 
@@ -206,9 +207,13 @@ export function WriteModifiedToDB(discreet_sql_io : DiscreetORMIO){
     }
 }
 
+export function idOfObject(obj){
+    return hash(obj);
+}
+
 export function commandForAddRow(obj: any) : command{
     let add_row_template = "INSERT INTO ? VALUES (?";
-    obj.discreet_orm_id = hash(obj);
+    obj.discreet_orm_id = idOfObject(obj);
     let obj_hash = obj.discreet_orm_id;
     let vals_list = [obj.constructor.name,  obj_hash];
     let forbidden_attributes = ["discreet_orm_id"];
