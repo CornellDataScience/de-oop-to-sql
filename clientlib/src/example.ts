@@ -55,26 +55,15 @@ Object.defineProperty(ahad_student, 'enumerableAttributeNotToBeAdded', {
 // console.log(ahad_student);
 // DiscreetORM.deleteFromDatabase(ahad_student, DiscreetORM.SQL_IO);
 // console.log(ahad_student);
-function test(discreet_sql_io : DiscreetORMIO){ 
-    return function (target: Object, propertyKey: string | symbol, descriptor: PropertyDescriptor) {
-        //needs to get object.keys, and then define the metadata for them
-        // so we can get metadata for the object
-        Reflect.defineMetadata(metadataKey, metadataValue, target, propertyKey);
-        
-        descriptor.value = function(... args: any[]) {
-            let result = original_function.apply(this, args);
-            writeToDB(this, discreet_sql_io); // write the state of the mutated object
-            return result;    
-        };
 
-        return descriptor;
-    }
-}
 class C {
-    @Reflect.metadata("metadataKey", "metadataValue")
-    method() {
+        @DiscreetORM.attributeDecorator(DiscreetORM.SQL_IO)
+        test57: string;
+        @Reflect.metadata("metadataKey", "metadataValue")
+        method() {
+        }
     }
-  }
   let obj = new C();
-  let metadataValue = Reflect.getMetadata("metadataKey", obj, "method");
+  let metadataValue = Reflect.getMetadata("attribute", obj);
   console.log(metadataValue)
+  

@@ -1,3 +1,5 @@
+import { relative } from "path";
+
 const fs = require('fs');
 const sqlstring = require ("sqlstring");
 const hash = require('object-hash');
@@ -193,6 +195,21 @@ export function WriteModifiedToDB(discreet_sql_io : DiscreetORMIO){
         }
         return descriptor;
     }
+}
+
+export function attributeDecorator(discreet_sql_io : DiscreetORMIO){ 
+    let attrib = "attribute"
+    return function(target: Object, propertyName: string){
+        let newVal = propertyName //#TODO: need to decide what items to store
+        if (Reflect.hasOwnMetadata(attrib, target)) {
+            let value = Reflect.getOwnMetadata(attrib, target)
+            value.push(newVal)
+            return Reflect.defineMetadata(attrib, value, target)
+        }
+        else {
+            return Reflect.defineMetadata(attrib, [newVal], target) 
+        }
+    } 
 }
 
 /**
