@@ -76,12 +76,21 @@ export class DatabaseORMIO implements DiscreetORMIO {
     }
 
     /** 
-     * readFromDB(command : string, discreet_sql_io) passes a string command into the database
+     * readFromDB(class_name : string, discreet_sql_io) passes the class name into the database
      * and returns an array of type DBRowResult (which is an array of strings), populated with 
      * entries of objects as specified in the command string.
     */
-    readFromDB(command : string) : Array<DBRowResult> {
-        throw new Error("Not implemented yet") 
+    readFromDB(class_name : string) : Array<DBRowResult> {
+        let escaped_command = sqlstring.format("SELECT * FROM ?", class_name);
+        let output: Array<DBRowResult>
+        try {
+            // Need code that parses the command and returns the result as DBRowResult
+            // For loop: store each DBRowResult into a single index of output
+            console.log(escaped_command)
+        } catch (e) {
+            throw e
+        }
+        return output
     }
     
     /** 
@@ -261,9 +270,8 @@ function addRow(obj: any, discreet_sql_io : DiscreetORMIO) : void {
 /** Queries the database to search for all objects of the 
  * specified class to reconstruct them into TypeScript objects. 
  */
-function queryEntireClass<T> (class_name : String, discreet_sql_io : DiscreetORMIO) : Array<T> {
-    let escaped_command = sqlstring.format("SELECT * FROM " + class_name);
-    let table = discreet_sql_io.readFromDB(escaped_command);
+function queryEntireClass<T> (class_name : string, discreet_sql_io : DiscreetORMIO) : Array<T> {
+    let table = discreet_sql_io.readFromDB(class_name);
     let query_result = new Array<T>();
 
     table.forEach(function (object_entry) {
