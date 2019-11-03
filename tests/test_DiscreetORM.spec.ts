@@ -10,19 +10,16 @@ function spaceIndependentEquals(s1 : string, s2: string) : boolean{
     }
 
     for (let i = 0; i < s1.length; i++){
-        if (s1.charCodeAt(i) === 32 || s1.charCodeAt(i) === 160){
-            if (s2.charCodeAt(i) === 32 || s2.charCodeAt(i) === 160){
-                continue
-            } else {
-                false;
-            }
-        }
         if (s1.charCodeAt(i) != s2.charCodeAt(i)){
-            console.log(s1.charCodeAt(i) + ' didnt match ' + s2.charCodeAt(i));
-            return false;
-        }
+            if (s1.charCodeAt(i) === 32 || s1.charCodeAt(i) === 160){
+                if (!(s2.charCodeAt(i) === 32 || s2.charCodeAt(i) === 160)){
+                    return false;
+                } 
+            } else {
+                return false;
+            }
+        } 
     }
-
     return true;
 }
 
