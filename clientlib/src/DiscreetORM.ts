@@ -81,7 +81,7 @@ export class DatabaseORMIO implements DiscreetORMIO {
      * entries of objects as specified in the command string.
     */
     readFromDB(command : string) : Array<DBRowResult> {
-        return 
+        throw new Error("Not implemented yet") 
     }
     
     /** 
@@ -89,7 +89,7 @@ export class DatabaseORMIO implements DiscreetORMIO {
      * entry of that corresponding class database and returns it.
     */
     reconstructObj<T> (entry : DBRowResult) : T {
-        return
+        throw new Error("Not implemented yet")
     }
 }
 
