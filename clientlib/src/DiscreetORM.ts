@@ -7,6 +7,8 @@ export interface ObjectListener<T> {
     onObjectCreation(t: T): void;
 }
 
+export type DBRowResult = Array<string>;
+
 /**
  * DiscreetORMIO defines a location to write SQL commands to. 
  * A single instance of a DiscreetORMIO object is associated with 
@@ -16,6 +18,11 @@ export interface DiscreetORMIO {
     readTables() : string [];
     writeSQL(output: string): void;
     writeNewTable(table_name : string) : void;
+<<<<<<< HEAD
+=======
+    readFromDB(command : string) : Array<DBRowResult>;
+    reconstructObj<T> (entry : DBRowResult) : T;
+>>>>>>> master
 }
 
 /** 
@@ -70,7 +77,23 @@ export class DatabaseORMIO implements DiscreetORMIO {
             throw 'DiscreetORM SQL Table write error. Could not write to file: ' + e;
         }
     }
+
+    /** 
+     * readFromDB(command : string, discreet_sql_io) passes a string command into the database
+     * and returns an array of type DBRowResult (which is an array of strings), populated with 
+     * entries of objects as specified in the command string.
+    */
+    readFromDB(command : string) : Array<DBRowResult> {
+        throw new Error("Not implemented yet") 
+    }
     
+    /** 
+     * reconstructObj(entry : DBRowResult) creates an object of type T from a row 
+     * entry of that corresponding class database and returns it.
+    */
+    reconstructObj<T> (entry : DBRowResult) : T {
+        throw new Error("Not implemented yet")
+    }
 }
 
 /**
@@ -244,9 +267,38 @@ function addRow(obj: any, discreet_sql_io : DiscreetORMIO) : void {
 }
 
 /**
- * The StoredClass ObjectListener is applied to any class, through Listener, who's instantiated 
- * objects should be backed in the DB associated with the DiscreetORMIO passed
- * into the constructor.
+ * addRow(obj, discreet_sql_io) adds the fields of obj to the DB. 
+ * Precondition: The class of obj must already have an associated table. 
+ * Does not add the hidden field 'discreet_orm_id' to the DB. 
+ * @param obj is the database-backed objected whose information is added to the DB.
+ * @param discreet_sql_io is the SQL interface.
+ */
+function addRow(obj: any, discreet_sql_io : DiscreetORMIO) : void {
+    let sql_command = commandForAddRow(obj);
+    discreet_sql_io.writeSQL(sql_command);            
+    console.log(sql_command);
+}
+
+/** Queries the database to search for all objects of the 
+ * specified class to reconstruct them into TypeScript objects. 
+ */
+function queryEntireClass<T> (class_name : String, discreet_sql_io : DiscreetORMIO) : Array<T> {
+    let escaped_command = sqlstring.format("SELECT * FROM " + class_name);
+    let table = discreet_sql_io.readFromDB(escaped_command);
+    let query_result = new Array<T>();
+
+    table.forEach(function (object_entry) {
+        let obj = discreet_sql_io.reconstructObj<T>(object_entry);
+        query_result.push(obj);
+    });
+
+    return query_result;
+}
+
+/**
+ * The StoredClass ObjectListener is applied to any class, through Listener, whose 
+ * instantiated objects should be backed in the DB associated with the DiscreetORMIO 
+ * passed into the constructor.
  */
 export class StoredClass implements ObjectListener<any>{
     discreet_sql_io : DiscreetORMIO;
