@@ -18,11 +18,8 @@ export interface DiscreetORMIO {
     readTables() : string [];
     writeSQL(output: string): void;
     writeNewTable(table_name : string) : void;
-<<<<<<< HEAD
-=======
     readFromDB(command : string) : Array<DBRowResult>;
     reconstructObj<T> (entry : DBRowResult) : T;
->>>>>>> master
 }
 
 /** 
@@ -251,19 +248,6 @@ export function commandForAddRow(obj: any) : command{
     add_row_template +=");";
     let escaped_command = sqlstring.format(add_row_template,vals_list);
     return escaped_command;
-}
-
-/**
- * addRow(obj, discreet_sql_io) adds the fields of obj to the DB. 
- * Precondition: The class of obj must already have an associated table. 
- * Does not add the hidden field 'discreet_orm_id' to the DB. 
- * @param obj is the database-backed objected whose information is added to the DB.
- * @param discreet_sql_io is the SQL interface.
- */
-function addRow(obj: any, discreet_sql_io : DiscreetORMIO) : void {
-    let sql_command = commandForAddRow(obj);
-    discreet_sql_io.writeSQL(sql_command);            
-    console.log(sql_command);
 }
 
 /**
