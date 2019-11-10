@@ -71,7 +71,7 @@ export class DatabaseORMIO implements DiscreetORMIO {
     executeQuery(queryString : string ) : void {
 
         let done = false;
-        let sync_query = deasync(this.mysql_conn.query, function (error, results, fields) {
+        this.mysql_conn.query(queryString, function (error, results, fields) {
             if (error) throw error;
             done = true;
         });
@@ -90,15 +90,14 @@ export class DatabaseORMIO implements DiscreetORMIO {
         let id = -1;
 
         // deasync will hold this function until query returns
-        this.mysql_conn.query('INSERT INTO posts SET ?', function (error, results, fields) {
+        this.mysql_conn.query(insertString, function (error, results, fields) {
             if (error) throw error;
             console.log("inserted ID is: " + results.insertId);
             id = results.insertId;
         });
 
         deasync.loopWhile(function() {return id == -1});
-
-        // check that deasync did its job
+        
         return id;
     }
 
