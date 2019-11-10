@@ -21,3 +21,6 @@ run-server:
 
 dep:
 	npm install
+
+test: 
+	npm test

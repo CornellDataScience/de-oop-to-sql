@@ -7,6 +7,9 @@ export interface ObjectListener<T> {
     onObjectCreation(t: T): void;
 }
 
+/**
+ * An array that represents a row in the database representation. 
+ */
 export type DBRowResult = Array<string>;
 
 /**
@@ -19,7 +22,7 @@ export interface DiscreetORMIO {
     writeSQL(output: string): void;
     writeNewTable(table_name : string) : void;
     readFromDB(command : string) : Array<DBRowResult>;
-    reconstructObj<T> (entry : DBRowResult) : T;
+    reconstructObj<T> (entry : DBRowResult, class_name: string) : T;
 }
 
 /** 
@@ -88,7 +91,7 @@ export class DatabaseORMIO implements DiscreetORMIO {
      * reconstructObj(entry : DBRowResult) creates an object of type T from a row 
      * entry of that corresponding class database and returns it.
     */
-    reconstructObj<T> (entry : DBRowResult) : T {
+    reconstructObj<T> (entry : DBRowResult, class_name: string) : T {
         throw new Error("Not implemented yet")
     }
 }
@@ -200,6 +203,7 @@ export function InstanceListener(discreet_sql_io : DiscreetORMIO){
         return descriptor;
     }
 }
+
 /** Method decorator to be applied to functions that modify a databased backed object, in place. 
  *  Executes the function, modifying the object. The object's existing DB record is deleted and 
  * replaced with the modified result of the function. Associates DB objects by the secret field 'discreet_orm_id'. 
@@ -226,9 +230,13 @@ export function WriteModifiedToDB(discreet_sql_io : DiscreetORMIO){
     }
 }
 
+export function idOfObject(obj){
+    return hash(obj);
+}
+
 export function commandForAddRow(obj: any) : command{
     let add_row_template = "INSERT INTO ? VALUES (?";
-    obj.discreet_orm_id = hash(obj);
+    obj.discreet_orm_id = idOfObject(obj);
     let obj_hash = obj.discreet_orm_id;
     let vals_list = [obj.constructor.name,  obj_hash];
     let forbidden_attributes = ["discreet_orm_id"];
@@ -261,13 +269,13 @@ function addRow(obj: any, discreet_sql_io : DiscreetORMIO) : void {
 /** Queries the database to search for all objects of the 
  * specified class to reconstruct them into TypeScript objects. 
  */
-function queryEntireClass<T> (class_name : String, discreet_sql_io : DiscreetORMIO) : Array<T> {
+function queryEntireClass<T> (class_name : string, discreet_sql_io : DiscreetORMIO) : Array<T> {
     let escaped_command = sqlstring.format("SELECT * FROM " + class_name);
     let table = discreet_sql_io.readFromDB(escaped_command);
     let query_result = new Array<T>();
 
     table.forEach(function (object_entry) {
-        let obj = discreet_sql_io.reconstructObj<T>(object_entry);
+        let obj = discreet_sql_io.reconstructObj<T>(object_entry, class_name);
         query_result.push(obj);
     });
 
