@@ -1,7 +1,10 @@
+import {Connection} from "mysql";
+
 const fs = require('fs');
 const sqlstring = require ("sqlstring");
 const hash = require('object-hash');
-const mysql = require('mysql');
+import mysql = require('mysql');
+const deasync = require('deasync');
 
 export interface ObjectListener<T> {
     discreet_sql_io : DiscreetORMIO;
@@ -17,11 +20,11 @@ export type DBRowResult = Array<string>;
  */
 export interface DiscreetORMIO {
     readTables() : string [];
-    writeSQL(output: string): void;
+    // writeSQL(output: string): void;
     writeNewTable(table_name : string) : void;
     readFromDB(command : string) : Array<DBRowResult>;
     reconstructObj<T> (entry : DBRowResult) : T;
-    updateOrDeleteRow(queryString : string ) : void;
+    executeQuery(queryString : string ) : void;
 }
 
 /** 
@@ -32,7 +35,7 @@ export type command = string
 export class DatabaseORMIO implements DiscreetORMIO {
     sql_filepath : string;
     tlist_filepath : string;
-    mysql_conn : any;
+    mysql_conn : Connection;
     FILE_ENCODING = 'utf8';
     FILE_NOT_FOUND_ERROR_IDENT = 'no such';
 
@@ -56,16 +59,16 @@ export class DatabaseORMIO implements DiscreetORMIO {
         return tables_contents.split("\n");
     }
 
-    writeSQL(output : string) : void {
-        let formatted_output = '\n' + output;
-        let buffer = Buffer.from(formatted_output);
-        try {
-            fs.appendFileSync(this.sql_filepath, buffer);
-            console.log('Wrote SQL commands to commands file.');
-        } catch (e) {
-            throw 'DiscreetORM SQL Table write error. Could not write to file: ' + e;
-        }
-    }
+    // writeSQL(output : string) : void {
+    //     let formatted_output = '\n' + output;
+    //     let buffer = Buffer.from(formatted_output);
+    //     try {
+    //         fs.appendFileSync(this.sql_filepath, buffer);
+    //         console.log('Wrote SQL commands to commands file.');
+    //     } catch (e) {
+    //         throw 'DiscreetORM SQL Table write error. Could not write to file: ' + e;
+    //     }
+    // }
 
     /**
      * Executes the passed update statement
@@ -73,8 +76,10 @@ export class DatabaseORMIO implements DiscreetORMIO {
      * TODO: refactor update query building functionality into here?
      * @param queryString the escaped SQL update or delte query
      */
-    updateOrDeleteRow(queryString : string ) : void {
-        let result = this.mysql_conn.query(queryString);
+    executeQuery(queryString : string ) : void {
+        let sync_query = deasync(this.mysql_conn.query);
+
+        let result = sync_query(queryString);
         console.log(result);
     }
 
@@ -83,14 +88,22 @@ export class DatabaseORMIO implements DiscreetORMIO {
      *
      * @param insertString
      */
-    insertRow(insertString : string ) : void {
+    insertRow(insertString : string ) : number {
+        let sync_query = deasync(this.mysql_conn.query);
+        let id = -1;
 
         // currently no way to extract results here
-        this.mysql_conn.query('INSERT INTO posts SET ?', function (error, results, fields) {
+        sync_query('INSERT INTO posts SET ?', function (error, results, fields) {
             if (error) throw error;
             console.log("inserted ID is: " + results.insertId);
-
+            id = results.insertId;
         });
+
+        // check that deasync did its job
+        if (id == -1) {
+            throw new Error("deasync doesn't seem to be working");
+        }
+        return id;
     }
 
     writeNewTable(table_name : string) : void {
@@ -112,7 +125,7 @@ export class DatabaseORMIO implements DiscreetORMIO {
     */
     readFromDB(class_name : string) : Array<DBRowResult> {
         let escaped_command = sqlstring.format("SELECT * FROM ?", class_name);
-        let output: Array<DBRowResult>
+        let output: Array<DBRowResult>;
         try {
             // Need code that parses the command and returns the result as DBRowResult
             // For loop: store each DBRowResult into a single index of output
@@ -147,7 +160,7 @@ export function deleteFromDatabase<T> (delete_target : T, discreet_sql_io : Disc
     let delete_row_template = 'DELETE FROM ?? WHERE ??;';
 
     let escaped_command = sqlstring.format(delete_row_template, [result_table_name, ("discreet_orm_id = " + reference_id)]);
-    discreet_sql_io.updateOrDeleteRow(escaped_command);
+    discreet_sql_io.executeQuery(escaped_command);
     return; 
 }
 
@@ -194,7 +207,7 @@ function writeToDB(toWrite: any, discreet_sql_io : DiscreetORMIO) {
     let delete_row_template = 'DELETE FROM ?? WHERE ??;';
     console.log([result_table_name, ("discreet_orm_id = " + reference_id)]);
     let escaped_command = sqlstring.format(delete_row_template, [result_table_name, ("discreet_orm_id = " + reference_id)]);
-    discreet_sql_io.writeSQL(escaped_command);
+    discreet_sql_io.executeQuery(escaped_command);
     addRow(toWrite, discreet_sql_io);
 }
 
@@ -254,8 +267,7 @@ export function commandForAddRow(obj: any) : command{
         }
     }
     add_row_template +=");";
-    let escaped_command = sqlstring.format(add_row_template,vals_list);
-    return escaped_command;
+    return sqlstring.format(add_row_template, vals_list);
 }
 
 /**
@@ -267,7 +279,7 @@ export function commandForAddRow(obj: any) : command{
  */
 function addRow(obj: any, discreet_sql_io : DiscreetORMIO) : void {
     let sql_command = commandForAddRow(obj);
-    discreet_sql_io.writeSQL(sql_command);            
+    discreet_sql_io.executeQuery(sql_command);
     console.log(sql_command);
 }
 
@@ -328,7 +340,7 @@ export class StoredClass implements ObjectListener<any>{
         let keys = Object.keys(obj);
         let sql_command = this.commandForNewTable(table_name, keys, obj);
         console.log(sql_command);
-        this.discreet_sql_io.writeSQL(sql_command);
+        this.discreet_sql_io.executeQuery(sql_command);
         this.discreet_sql_io.writeNewTable(table_name);
     }
     
