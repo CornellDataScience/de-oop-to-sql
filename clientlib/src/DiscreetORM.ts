@@ -1,8 +1,6 @@
 import {Connection} from "mysql";
 
 const fs = require('fs');
-const sqlstring = require ("sqlstring");
-const hash = require('object-hash');
 import mysql = require('mysql');
 const deasync = require('deasync');
 
@@ -88,16 +86,17 @@ export class DatabaseORMIO implements DiscreetORMIO {
      */
     insertRow(insertString : string ) : number {
         let id = -1;
+        let done = false;
 
         // deasync will hold this function until query returns
         this.mysql_conn.query(insertString, function (error, results, fields) {
             if (error) throw error;
             console.log("inserted ID is: " + results.insertId);
             id = results.insertId;
+            done = true;
         });
+        deasync.loopWhile(function() {return !done});
 
-        deasync.loopWhile(function() {return id == -1});
-        
         return id;
     }
 
@@ -119,7 +118,7 @@ export class DatabaseORMIO implements DiscreetORMIO {
      * entries of objects as specified in the command string.
     */
     readFromDB(class_name : string) : Array<DBRowResult> {
-        let escaped_command = sqlstring.format("SELECT * FROM ?", class_name);
+        let escaped_command = mysql.format("SELECT * FROM ?", [class_name]);
         let output: Array<DBRowResult>;
         try {
             // Need code that parses the command and returns the result as DBRowResult
@@ -154,7 +153,7 @@ export function deleteFromDatabase<T> (delete_target : T, discreet_sql_io : Disc
     let reference_id = <string> delete_target.discreet_orm_id;
     let delete_row_template = 'DELETE FROM ?? WHERE ??;';
 
-    let escaped_command = sqlstring.format(delete_row_template, [result_table_name, ("discreet_orm_id = " + reference_id)]);
+    let escaped_command = mysql.format(delete_row_template, [result_table_name, ("discreet_orm_id = " + reference_id)]);
     discreet_sql_io.executeQuery(escaped_command);
     return; 
 }
@@ -255,19 +254,21 @@ export function InstanceListener(discreet_sql_io : DiscreetORMIO){
 }
 
 export function commandForAddRow(obj: any) : command{
-    let add_row_template = "INSERT INTO ? VALUES (?";
-    let vals_list = [obj.constructor.name,  obj.discreet_orm_id];
+    let add_row_template = "INSERT INTO ?? (??) VALUES (?);";
+    let attrs_list = [];
+    let vals_list = [];
     let forbidden_attributes = ["discreet_orm_id"];
     let forbidden_attribute_types = ["function", "undefined", "object"];
     for (let attribute of Object.keys(obj)){
         // TODO: Object writing is a big feature so we need it in a separate function
         if(!forbidden_attribute_types.includes(typeof(obj[attribute])) && !forbidden_attributes.includes(attribute)) {
-            vals_list.push(obj[attribute]); 
-            add_row_template += ", ?";
+            attrs_list.push(attribute);
+            vals_list.push(obj[attribute]);
         }
     }
-    add_row_template +=");";
-    return sqlstring.format(add_row_template, vals_list);
+    let sql = mysql.format(add_row_template, [obj.constructor.name, attrs_list, vals_list]);
+    console.log(sql);
+    return sql;
 }
 
 function commandForUpdateRow(obj: any) : command{
@@ -283,7 +284,7 @@ function commandForUpdateRow(obj: any) : command{
             attrs_dict[attribute] = obj[attribute];
         }
     }
-    return sqlstring.format(update_row_template, [obj.constructor.name, attrs_dict, obj.discreet_orm_id]);
+    return mysql.format(update_row_template, [obj.constructor.name, attrs_dict, obj.discreet_orm_id]);
 }
 
 
@@ -334,8 +335,8 @@ export class StoredClass implements ObjectListener<any>{
         let qmark_arr = new Array<String>(count);
         qmark_arr.fill('?? ?');
         let qmark_str = qmark_arr.join(',');
-        let create_table_template = `CREATE TABLE ?? (orm_id INT(255), ${qmark_str});`;
-        return <string>sqlstring.format(create_table_template, args);
+        let create_table_template = `CREATE TABLE IF NOT EXISTS ?? (orm_id INT(255) NOT NULL AUTO_INCREMENT, ${qmark_str});`;
+        return <string>mysql.format(create_table_template, args);
     }
 
     createNewTable(obj: any) : void {
@@ -356,19 +357,19 @@ export class StoredClass implements ObjectListener<any>{
         writeToDB(obj, this.discreet_sql_io);
     }
 
-    tsTypeToSQLType(ts_type : String) : Buffer{
+    tsTypeToSQLType(ts_type : String) : () => string{
         switch (ts_type) {
             case "String": {
-                return sqlstring.raw("VARCHAR(255)");
+                return mysql.raw("VARCHAR(255)");
             }
             case "Number" : {
-                return sqlstring.raw("INT(255)");
+                return mysql.raw("INT(255)");
             }
             case "number" : {
-                return sqlstring.raw("INT(255)");
+                return mysql.raw("INT(255)");
             }
             default : {
-                return sqlstring.raw("VARCHAR(255)");
+                return mysql.raw("VARCHAR(255)");
             }
         }
     }
