@@ -2,6 +2,7 @@ import {Connection} from "mysql";
 
 const fs = require('fs');
 import mysql = require('mysql');
+
 const deasync = require('deasync');
 
 export interface ObjectListener<T> {
@@ -67,6 +68,7 @@ export class DatabaseORMIO implements DiscreetORMIO {
      * @param queryString the escaped SQL update or delte query
      */
     executeQuery(queryString : string ) : void {
+        console.log(queryString);
 
         let done = false;
         this.mysql_conn.query(queryString, function (error, results, fields) {
@@ -85,6 +87,8 @@ export class DatabaseORMIO implements DiscreetORMIO {
      * @param insertString
      */
     insertRow(insertString : string ) : number {
+        console.log(insertString);
+
         let id = -1;
         let done = false;
 
@@ -151,9 +155,9 @@ export function deleteFromDatabase<T> (delete_target : T, discreet_sql_io : Disc
     let result_table_name = <string> delete_target.constructor.name;
     // @ts-ignore
     let reference_id = <string> delete_target.discreet_orm_id;
-    let delete_row_template = 'DELETE FROM ?? WHERE ??;';
+    let delete_row_template = 'DELETE FROM ?? WHERE orm_id = ?;';
 
-    let escaped_command = mysql.format(delete_row_template, [result_table_name, ("discreet_orm_id = " + reference_id)]);
+    let escaped_command = mysql.format(delete_row_template, [result_table_name, reference_id]);
     discreet_sql_io.executeQuery(escaped_command);
     return; 
 }
@@ -208,7 +212,7 @@ function writeToDB(to_write: any, discreet_sql_io : DiscreetORMIO) {
         let update_qstr = commandForUpdateRow(to_write);
         discreet_sql_io.executeQuery(update_qstr);
     }
-    console.log([result_table_name, ("discreet_orm_id = " + reference_id)]);
+    console.log([result_table_name, ("orm_id = " + reference_id)]);
 }
 
 /** Method decorator to be applied to methods that return a databased backed object.
@@ -266,13 +270,11 @@ export function commandForAddRow(obj: any) : command{
             vals_list.push(obj[attribute]);
         }
     }
-    let sql = mysql.format(add_row_template, [obj.constructor.name, attrs_list, vals_list]);
-    console.log(sql);
-    return sql;
+    return mysql.format(add_row_template, [obj.constructor.name, attrs_list, vals_list]);
 }
 
 function commandForUpdateRow(obj: any) : command{
-    let update_row_template = "UPDATE ? SET ? WHERE discreet_orm_id = ?";
+    let update_row_template = "UPDATE ?? SET ? WHERE orm_id = ?;";
     let attrs_dict = {};
     let forbidden_attributes = ["discreet_orm_id"];
     let forbidden_attribute_types = ["function", "undefined", "object"];
@@ -335,7 +337,7 @@ export class StoredClass implements ObjectListener<any>{
         let qmark_arr = new Array<String>(count);
         qmark_arr.fill('?? ?');
         let qmark_str = qmark_arr.join(',');
-        let create_table_template = `CREATE TABLE IF NOT EXISTS ?? (orm_id INT(255) NOT NULL AUTO_INCREMENT, ${qmark_str});`;
+        let create_table_template = `CREATE TABLE IF NOT EXISTS ?? (orm_id INT(255) PRIMARY KEY NOT NULL AUTO_INCREMENT, ${qmark_str});`;
         return <string>mysql.format(create_table_template, args);
     }
 
