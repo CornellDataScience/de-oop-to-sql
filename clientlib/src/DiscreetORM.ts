@@ -4,6 +4,7 @@ const fs = require('fs');
 const sqlstring = require ("sqlstring");
 const hash = require('object-hash');
 import mysql = require('mysql');
+
 const deasync = require('deasync');
 
 export interface ObjectListener<T> {
@@ -21,6 +22,7 @@ export type DBRowResult = Array<string>;
 export interface DiscreetORMIO {
     readTables() : string [];
     // writeSQL(output: string): void;
+    insertRow(insertString : string ) : number
     writeNewTable(table_name : string) : void;
     readFromDB(command : string) : Array<DBRowResult>;
     reconstructObj<T> (entry : DBRowResult) : T;
@@ -174,7 +176,7 @@ export function Listener<I extends ObjectListener<any>>(listener: I) {
         let keys = Object.keys(constructorFunction);
         let extendedConstructorFunction = class extends constructorFunction{
             // We add a discreet orm id with a default value of the empty string.
-            private discreet_orm_id = "";
+            private discreet_orm_id = -1;
         };
         extendedConstructorFunction.prototype = constructorFunction.prototype;
         let newConstructorFunction: any = function (...args) {
@@ -197,18 +199,24 @@ export function Listener<I extends ObjectListener<any>>(listener: I) {
 /**
  * Convenience method for writing new rows or row modifications into the database
  *
- * @param toWrite
+ * @param to_write
  * @param discreet_sql_io
  */
-function writeToDB(toWrite: any, discreet_sql_io : DiscreetORMIO) {
-    let result_table_name = toWrite.constructor.name;
-    let reference_id = toWrite.discreet_orm_id;
-        // TODO: maybe we should change this to an update or insert instead of a delete?
-    let delete_row_template = 'DELETE FROM ?? WHERE ??;';
+function writeToDB(to_write: any, discreet_sql_io : DiscreetORMIO) {
+    let result_table_name = to_write.constructor.name;
+    let reference_id = to_write.discreet_orm_id;
+
+    if (to_write.discreet_orm_id == -1) {
+        // first time insertion, update ID after insert
+        let insert_qstr = commandForAddRow(to_write);
+        to_write.discreet_orm_id = discreet_sql_io.insertRow(insert_qstr);
+    } else {
+        // need to update
+        let insert_row_template = 'UPDATE ? ;';
+        let update_qstr = commandForUpdateRow(to_write);
+        discreet_sql_io.executeQuery(update_qstr);
+    }
     console.log([result_table_name, ("discreet_orm_id = " + reference_id)]);
-    let escaped_command = sqlstring.format(delete_row_template, [result_table_name, ("discreet_orm_id = " + reference_id)]);
-    discreet_sql_io.executeQuery(escaped_command);
-    addRow(toWrite, discreet_sql_io);
 }
 
 /** Method decorator to be applied to methods that return a databased backed object.
@@ -252,15 +260,13 @@ export function InstanceListener(discreet_sql_io : DiscreetORMIO){
     }
 }
 
-export function commandForAddRow(obj: any) : command{
+function commandForAddRow(obj: any) : command{
     let add_row_template = "INSERT INTO ? VALUES (?";
-    obj.discreet_orm_id = hash(obj);
-    let obj_hash = obj.discreet_orm_id;
-    let vals_list = [obj.constructor.name,  obj_hash];
+    let vals_list = [obj.constructor.name,  obj.discreet_orm_id];
     let forbidden_attributes = ["discreet_orm_id"];
     let forbidden_attribute_types = ["function", "undefined", "object"];
     for (let attribute of Object.keys(obj)){
-            // TODO: Object writing is a big feature so we need it in a separate feature
+        // TODO: Object writing is a big feature so we need it in a separate function
         if(!forbidden_attribute_types.includes(typeof(obj[attribute])) && !forbidden_attributes.includes(attribute)) {
             vals_list.push(obj[attribute]); 
             add_row_template += ", ?";
@@ -270,6 +276,22 @@ export function commandForAddRow(obj: any) : command{
     return sqlstring.format(add_row_template, vals_list);
 }
 
+function commandForUpdateRow(obj: any) : command{
+    let update_row_template = "UPDATE ? SET ? WHERE discreet_orm_id = ?";
+    let attrs_dict = {};
+    let forbidden_attributes = ["discreet_orm_id"];
+    let forbidden_attribute_types = ["function", "undefined", "object"];
+
+    // creates a dictionary/object copy of obj but without attributes explicitly excluded
+    // TODO: we need to avoid code duplication for this type of iteration
+    for (let attribute of Object.keys(obj)){
+        if(!forbidden_attribute_types.includes(typeof(obj[attribute])) && !forbidden_attributes.includes(attribute)) {
+            attrs_dict[attribute] = obj[attribute];
+        }
+    }
+    return sqlstring.format(update_row_template, [obj.constructor.name, attrs_dict, obj.discreet_orm_id]);
+}
+
 /**
  * addRow(obj, discreet_sql_io) adds the fields of obj to the DB. 
  * Precondition: The class of obj must already have an associated table. 
@@ -277,11 +299,11 @@ export function commandForAddRow(obj: any) : command{
  * @param obj is the database-backed objected whose information is added to the DB.
  * @param discreet_sql_io is the SQL interface.
  */
-function addRow(obj: any, discreet_sql_io : DiscreetORMIO) : void {
-    let sql_command = commandForAddRow(obj);
-    discreet_sql_io.executeQuery(sql_command);
-    console.log(sql_command);
-}
+// function addRow(obj: any, discreet_sql_io : DiscreetORMIO) : void {
+//     let sql_command = commandForAddRow(obj);
+//     discreet_sql_io.executeQuery(sql_command);
+//     console.log(sql_command);
+// }
 
 /** Queries the database to search for all objects of the 
  * specified class to reconstruct them into TypeScript objects. 
@@ -320,8 +342,8 @@ export class StoredClass implements ObjectListener<any>{
             if(typeof(obj[keys[i]]) != "function" && typeof(obj[keys[i]]) != "undefined" && typeof(obj[keys[i]]) != "object") {
                 // We want to ignore the secret discreet_orm_id, since discreet_orm_id is already hardcoded in.
                 if (keys[i] != "discreet_orm_id"){
-                    args.push(keys[i])
-                    args.push(this.tsTypeToSQLType(obj[keys[i]].constructor.name))
+                    args.push(keys[i]);
+                    args.push(this.tsTypeToSQLType(obj[keys[i]].constructor.name));
                     count++;
                 }
             }
@@ -331,8 +353,7 @@ export class StoredClass implements ObjectListener<any>{
         qmark_arr.fill('?? ?');
         let qmark_str = qmark_arr.join(',');
         let create_table_template = `CREATE TABLE ?? (orm_id INT(255), ${qmark_str});`;
-        let escaped_command = <string> sqlstring.format(create_table_template, args);
-        return escaped_command;
+        return <string>sqlstring.format(create_table_template, args);
     }
 
     createNewTable(obj: any) : void {
@@ -349,8 +370,8 @@ export class StoredClass implements ObjectListener<any>{
         if (!this.discreet_sql_io.readTables().includes(table_name)){
             this.createNewTable(obj);
         }
-        
-        addRow(obj, this.discreet_sql_io);
+
+        writeToDB(obj, this.discreet_sql_io);
     }
 
     tsTypeToSQLType(ts_type : String) : Buffer{
