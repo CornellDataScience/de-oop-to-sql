@@ -9,6 +9,7 @@ export interface ObjectListener<T> {
 
 /**
  * An array that represents a row in the database representation. 
+ * \[discreet_orm_id, 'attribute_1_data', ... , 'attribute_n_data'\]
  */
 export type DBRowResult = Array<string>;
 
@@ -22,7 +23,8 @@ export interface DiscreetORMIO {
     writeSQL(output: string): void;
     writeNewTable(table_name : string) : void;
     readFromDB(command : string) : Array<DBRowResult>;
-    reconstructObj<T> (entry : DBRowResult, class_name: string) : T;
+    readColumnsFromTable(table_name: string): Array<string>;
+    reconstructObj<T> (entry : DBRowResult, class_name: string, column_names: Array<string>) : T;
 }
 
 /** 
@@ -87,12 +89,35 @@ export class DatabaseORMIO implements DiscreetORMIO {
         throw new Error("Not implemented yet") 
     }
     
+    /**
+     * Gives the names of the columns for a given table_name.
+     * @param table_name The table from which to return the columns.
+     */
+    readColumnsFromTable(table_name: string): Array<string> {
+        throw new Error("Not implemented yet.")
+    }
+
     /** 
      * reconstructObj(entry : DBRowResult) creates an object of type T from a row 
      * entry of that corresponding class database and returns it.
     */
-    reconstructObj<T> (entry : DBRowResult, class_name: string) : T {
-        throw new Error("Not implemented yet")
+    reconstructObj<T> (entry : DBRowResult, class_name: string, column_names: Array<string>) : T {
+        // TODO: Types, and orm_id special handeling, class_name handeling? 
+        let empty_obj = <T>{};
+        let source = entry.reduce(function(acc, column, index) {
+            if (column_names[index] === 'discreet_orm_id'){
+                // Skip discreet_orm_id for now
+                // We can use Object.defineProperty to maybe privatize it
+                return acc; 
+            }
+            acc[column_names[index]] = column;
+            return acc;
+        }, empty_obj);
+
+        Object.defineProperty(source.constructor, 'name', {
+            value: class_name,
+        })
+        return source;
     }
 }
 
@@ -271,11 +296,12 @@ function addRow(obj: any, discreet_sql_io : DiscreetORMIO) : void {
  */
 function queryEntireClass<T> (class_name : string, discreet_sql_io : DiscreetORMIO) : Array<T> {
     let escaped_command = sqlstring.format("SELECT * FROM " + class_name);
-    let table = discreet_sql_io.readFromDB(escaped_command);
+    let results = discreet_sql_io.readFromDB(escaped_command);
     let query_result = new Array<T>();
+    let column_names = discreet_sql_io.readColumnsFromTable(class_name);
 
-    table.forEach(function (object_entry) {
-        let obj = discreet_sql_io.reconstructObj<T>(object_entry, class_name);
+    results.forEach(function (object_entry) {
+        let obj = discreet_sql_io.reconstructObj<T>(object_entry, class_name, column_names);
         query_result.push(obj);
     });
 
