@@ -7,6 +7,9 @@ export interface ObjectListener<T> {
     onObjectCreation(t: T): void;
 }
 
+/**
+ * An array that represents a row in the database representation. 
+ */
 export type DBRowResult = Array<string>;
 
 /**
@@ -19,7 +22,7 @@ export interface DiscreetORMIO {
     writeSQL(output: string): void;
     writeNewTable(table_name : string) : void;
     readFromDB(command : string) : Array<DBRowResult>;
-    reconstructObj<T> (entry : DBRowResult) : T;
+    reconstructObj<T> (entry : DBRowResult, class_name: string) : T;
 }
 
 /** 
@@ -88,7 +91,7 @@ export class DatabaseORMIO implements DiscreetORMIO {
      * reconstructObj(entry : DBRowResult) creates an object of type T from a row 
      * entry of that corresponding class database and returns it.
     */
-    reconstructObj<T> (entry : DBRowResult) : T {
+    reconstructObj<T> (entry : DBRowResult, class_name: string) : T {
         throw new Error("Not implemented yet")
     }
 }
@@ -272,7 +275,7 @@ function queryEntireClass<T> (class_name : String, discreet_sql_io : DiscreetORM
     let query_result = new Array<T>();
 
     table.forEach(function (object_entry) {
-        let obj = discreet_sql_io.reconstructObj<T>(object_entry);
+        let obj = discreet_sql_io.reconstructObj<T>(object_entry, class_name);
         query_result.push(obj);
     });
 
