@@ -1,6 +1,7 @@
 const fs = require('fs');
 const sqlstring = require ("sqlstring");
 const hash = require('object-hash');
+const mysql = require('mysql');
 
 export interface ObjectListener<T> {
     discreet_sql_io : DiscreetORMIO;
@@ -20,6 +21,7 @@ export interface DiscreetORMIO {
     writeNewTable(table_name : string) : void;
     readFromDB(command : string) : Array<DBRowResult>;
     reconstructObj<T> (entry : DBRowResult) : T;
+    updateOrDeleteRow(queryString : string ) : void;
 }
 
 /** 
@@ -30,12 +32,14 @@ export type command = string
 export class DatabaseORMIO implements DiscreetORMIO {
     sql_filepath : string;
     tlist_filepath : string;
+    mysql_conn : any;
     FILE_ENCODING = 'utf8';
     FILE_NOT_FOUND_ERROR_IDENT = 'no such';
 
-    constructor(sql_path : string, tlist_path : string) {
+    constructor(sql_path : string, tlist_path : string, mysql_conn : any) {
         this.sql_filepath = sql_path;
         this.tlist_filepath = tlist_path;
+        this.mysql_conn = mysql_conn;
     }
 
     readTables() : string[] {
@@ -61,6 +65,32 @@ export class DatabaseORMIO implements DiscreetORMIO {
         } catch (e) {
             throw 'DiscreetORM SQL Table write error. Could not write to file: ' + e;
         }
+    }
+
+    /**
+     * Executes the passed update statement
+     *
+     * TODO: refactor update query building functionality into here?
+     * @param queryString the escaped SQL update or delte query
+     */
+    updateOrDeleteRow(queryString : string ) : void {
+        let result = this.mysql_conn.query(queryString);
+        console.log(result);
+    }
+
+    /**
+     * Executes a provided INSERT statement, and returns the auto increment primary key of the inserted record
+     *
+     * @param insertString
+     */
+    insertRow(insertString : string ) : void {
+
+        // currently no way to extract results here
+        this.mysql_conn.query('INSERT INTO posts SET ?', function (error, results, fields) {
+            if (error) throw error;
+            console.log("inserted ID is: " + results.insertId);
+
+        });
     }
 
     writeNewTable(table_name : string) : void {
@@ -114,10 +144,10 @@ export function deleteFromDatabase<T> (delete_target : T, discreet_sql_io : Disc
     let result_table_name = <string> delete_target.constructor.name;
     // @ts-ignore
     let reference_id = <string> delete_target.discreet_orm_id;
-    let delete_row_template = 'DELETE FROM ?? WHERE ??;'
+    let delete_row_template = 'DELETE FROM ?? WHERE ??;';
 
     let escaped_command = sqlstring.format(delete_row_template, [result_table_name, ("discreet_orm_id = " + reference_id)]);
-    discreet_sql_io.writeSQL(escaped_command);   
+    discreet_sql_io.updateOrDeleteRow(escaped_command);
     return; 
 }
 
@@ -205,32 +235,6 @@ export function InstanceListener(discreet_sql_io : DiscreetORMIO){
             writeToDB(this, discreet_sql_io); // write the state of the mutated object
             return result;    
         };
-
-        return descriptor;
-    }
-}
-/** Method decorator to be applied to functions that modify a databased backed object, in place. 
- *  Executes the function, modifying the object. The object's existing DB record is deleted and 
- * replaced with the modified result of the function. Associates DB objects by the secret field 'discreet_orm_id'. 
- * 
- * To be used on methods that modifies object in place (generall)
- * Note: Will generally be used on dynamic methods of the class
- */
-export function WriteModifiedToDB(discreet_sql_io : DiscreetORMIO){
-    return function (target: Object, propertyKey: string | symbol, descriptor: PropertyDescriptor) {
-        const original_function = descriptor.value;
-        
-        descriptor.value = function(... args: any[]) {
-            const binded_original_function = original_function.bind(this)
-            let result = binded_original_function(args)
-            let result_table_name = this.constructor.name
-            let reference_id = this['discreet_orm_id'];
-            let delete_row_template = 'DELETE FROM ?? WHERE ??;'
-            let escaped_command = sqlstring.format(delete_row_template, [result_table_name, ("discreet_orm_id = " + reference_id)]);
-            discreet_sql_io.writeSQL(escaped_command);
-            addRow(this, discreet_sql_io);
-            return result;    
-        }
         return descriptor;
     }
 }
@@ -358,8 +362,15 @@ export class StoredClass implements ObjectListener<any>{
 // Configuration Options: 
 let command_out = 'output/commands.sql';
 let table_lst = 'output/tables.tlst';
+let conn = mysql.createConnection({
+    host     : 'localhost',
+    user     : 'cds',
+    password : 'fakepassword',
+    database : 'testing'
+});
+conn.connect();
 
-export const SQL_IO = new DatabaseORMIO(command_out, table_lst);
+export const SQL_IO = new DatabaseORMIO(command_out, table_lst, conn);
 
 // Applied on an example. 
 @Listener(new StoredClass(SQL_IO))
