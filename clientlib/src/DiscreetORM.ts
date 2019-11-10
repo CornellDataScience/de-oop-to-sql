@@ -4,7 +4,6 @@ const fs = require('fs');
 const sqlstring = require ("sqlstring");
 const hash = require('object-hash');
 import mysql = require('mysql');
-
 const deasync = require('deasync');
 
 export interface ObjectListener<T> {
@@ -12,6 +11,9 @@ export interface ObjectListener<T> {
     onObjectCreation(t: T): void;
 }
 
+/**
+ * An array that represents a row in the database representation.
+ */
 export type DBRowResult = Array<string>;
 
 /**
@@ -21,11 +23,10 @@ export type DBRowResult = Array<string>;
  */
 export interface DiscreetORMIO {
     readTables() : string [];
-    // writeSQL(output: string): void;
     insertRow(insertString : string ) : number
     writeNewTable(table_name : string) : void;
     readFromDB(command : string) : Array<DBRowResult>;
-    reconstructObj<T> (entry : DBRowResult) : T;
+    reconstructObj<T> (entry : DBRowResult, class_name: string) : T;
     executeQuery(queryString : string ) : void;
 }
 
@@ -60,17 +61,6 @@ export class DatabaseORMIO implements DiscreetORMIO {
         }
         return tables_contents.split("\n");
     }
-
-    // writeSQL(output : string) : void {
-    //     let formatted_output = '\n' + output;
-    //     let buffer = Buffer.from(formatted_output);
-    //     try {
-    //         fs.appendFileSync(this.sql_filepath, buffer);
-    //         console.log('Wrote SQL commands to commands file.');
-    //     } catch (e) {
-    //         throw 'DiscreetORM SQL Table write error. Could not write to file: ' + e;
-    //     }
-    // }
 
     /**
      * Executes the passed update statement
@@ -121,7 +111,7 @@ export class DatabaseORMIO implements DiscreetORMIO {
     }
 
     /** 
-     * readFromDB(class_name : string, discreet_sql_io) passes the class name into the database
+     * readFromDB(command : string, discreet_sql_io) passes a string command into the database
      * and returns an array of type DBRowResult (which is an array of strings), populated with 
      * entries of objects as specified in the command string.
     */
@@ -142,7 +132,7 @@ export class DatabaseORMIO implements DiscreetORMIO {
      * reconstructObj(entry : DBRowResult) creates an object of type T from a row 
      * entry of that corresponding class database and returns it.
     */
-    reconstructObj<T> (entry : DBRowResult) : T {
+    reconstructObj<T> (entry : DBRowResult, class_name: string) : T {
         throw new Error("Not implemented yet")
     }
 }
@@ -256,11 +246,12 @@ export function InstanceListener(discreet_sql_io : DiscreetORMIO){
             writeToDB(this, discreet_sql_io); // write the state of the mutated object
             return result;    
         };
+
         return descriptor;
     }
 }
 
-function commandForAddRow(obj: any) : command{
+export function commandForAddRow(obj: any) : command{
     let add_row_template = "INSERT INTO ? VALUES (?";
     let vals_list = [obj.constructor.name,  obj.discreet_orm_id];
     let forbidden_attributes = ["discreet_orm_id"];
@@ -292,18 +283,6 @@ function commandForUpdateRow(obj: any) : command{
     return sqlstring.format(update_row_template, [obj.constructor.name, attrs_dict, obj.discreet_orm_id]);
 }
 
-/**
- * addRow(obj, discreet_sql_io) adds the fields of obj to the DB. 
- * Precondition: The class of obj must already have an associated table. 
- * Does not add the hidden field 'discreet_orm_id' to the DB. 
- * @param obj is the database-backed objected whose information is added to the DB.
- * @param discreet_sql_io is the SQL interface.
- */
-// function addRow(obj: any, discreet_sql_io : DiscreetORMIO) : void {
-//     let sql_command = commandForAddRow(obj);
-//     discreet_sql_io.executeQuery(sql_command);
-//     console.log(sql_command);
-// }
 
 /** Queries the database to search for all objects of the 
  * specified class to reconstruct them into TypeScript objects. 
@@ -313,7 +292,7 @@ function queryEntireClass<T> (class_name : string, discreet_sql_io : DiscreetORM
     let query_result = new Array<T>();
 
     table.forEach(function (object_entry) {
-        let obj = discreet_sql_io.reconstructObj<T>(object_entry);
+        let obj = discreet_sql_io.reconstructObj<T>(object_entry, class_name);
         query_result.push(obj);
     });
 

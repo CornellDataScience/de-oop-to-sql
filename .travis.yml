@@ -4,9 +4,3 @@ node_js:
 script:
   - npm test
   - make build-js
-notifications:
-  email:
-    recipients:
-      - hk592@cornell.edu
-    on_success: change
-    on_failure: always
