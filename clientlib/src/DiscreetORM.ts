@@ -69,10 +69,16 @@ export class DatabaseORMIO implements DiscreetORMIO {
      * @param queryString the escaped SQL update or delte query
      */
     executeQuery(queryString : string ) : void {
-        let sync_query = deasync(this.mysql_conn.query);
 
-        let result = sync_query(queryString);
-        console.log(result);
+        let done = false;
+        let sync_query = deasync(this.mysql_conn.query, function (error, results, fields) {
+            if (error) throw error;
+            done = true;
+        });
+
+        deasync.loopWhile(function() {return !done});
+
+        this.mysql_conn.query(queryString);
     }
 
     /**
@@ -81,20 +87,18 @@ export class DatabaseORMIO implements DiscreetORMIO {
      * @param insertString
      */
     insertRow(insertString : string ) : number {
-        let sync_query = deasync(this.mysql_conn.query);
         let id = -1;
 
-        // currently no way to extract results here
-        sync_query('INSERT INTO posts SET ?', function (error, results, fields) {
+        // deasync will hold this function until query returns
+        this.mysql_conn.query('INSERT INTO posts SET ?', function (error, results, fields) {
             if (error) throw error;
             console.log("inserted ID is: " + results.insertId);
             id = results.insertId;
         });
 
+        deasync.loopWhile(function() {return id == -1});
+
         // check that deasync did its job
-        if (id == -1) {
-            throw new Error("deasync doesn't seem to be working");
-        }
         return id;
     }
 
