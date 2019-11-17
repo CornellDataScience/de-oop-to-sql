@@ -3,6 +3,7 @@ import { expect } from 'chai';
 import 'mocha';
 import { stringify } from 'querystring';
 import { create } from 'domain';
+
 import { test } from 'mocha';
 
 function spaceIndependentEquals(s1 : string, s2: string) : boolean{
@@ -50,7 +51,6 @@ function parameterBasedEquals(o1: Object, o2: Object) : boolean{
     return true; 
 }
 
-
 describe('addRow test bench', () => {
     it('Basic commandForAddRow test', () => {
         class TestClass{
@@ -62,12 +62,10 @@ describe('addRow test bench', () => {
             }
         }
         let test_obj = new TestClass();
-        let test_id = DiscreetORM.idOfObject(test_obj);
-        let expected_command = <string>'INSERT\xa0INTO\xa0\'TestClass\'\xa0VALUES\xa0(\'' + test_id + '\',\xa0\'hello\',\xa034);'
+        let expected_command = <string>'INSERT INTO `TestClass` (`a`, `b`) VALUES (\'hello\', 34);';
         let test_obj_sql = <string>DiscreetORM.commandForAddRow(test_obj);
-        expect(spaceIndependentEquals(expected_command, test_obj_sql)).to.be.true;
+        expect(expected_command).to.equal(test_obj_sql);
     });
-
     it ("addRow doesn't add functions", () => {
         class TestClass{
             a: string;
@@ -81,10 +79,9 @@ describe('addRow test bench', () => {
             }
         }
         let test_obj = new TestClass();
-        let test_id = DiscreetORM.idOfObject(test_obj);
-        let expected_command = <string>'INSERT\xa0INTO\xa0\'TestClass\'\xa0VALUES\xa0(\'' + test_id + '\',\xa0\'hello\',\xa034);'
+        let expected_command = <string>'INSERT INTO `TestClass` (`a`, `b`) VALUES (\'hello\', 34);';
         let test_obj_sql = <string>DiscreetORM.commandForAddRow(test_obj);
-        expect(spaceIndependentEquals(expected_command, test_obj_sql)).to.be.true;
+        expect(expected_command).to.equal(test_obj_sql);
     });
 
     it ("addRow doesn't add enumerable functions", () => {

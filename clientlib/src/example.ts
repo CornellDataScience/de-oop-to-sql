@@ -54,6 +54,12 @@ console.log(ahad_student);
 DiscreetORM.deleteFromDatabase(ahad_student, DiscreetORM.SQL_IO);
 console.log(ahad_student);
 
+
 let test_obj = Object.create({a: 0, b: "hello"});
 let test_obj_sql = DiscreetORM.commandForAddRow(test_obj);
 console.log(test_obj_sql)
+
+console.log("DONE!");
+
+// TODO: we need a better way of handling this
+DiscreetORM.SQL_IO.close();
