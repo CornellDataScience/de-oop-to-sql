@@ -77,8 +77,6 @@ export class DatabaseORMIO implements DiscreetORMIO {
         });
 
         deasync.loopWhile(function() {return !done});
-
-        this.mysql_conn.query(queryString);
     }
 
     /**
