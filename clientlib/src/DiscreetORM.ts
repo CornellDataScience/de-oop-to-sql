@@ -234,7 +234,6 @@ export function Listener<I extends ObjectListener<any>>(listener: I) {
  */
 function writeToDB(to_write: any, discreet_sql_io : DiscreetORMIO) {
     let result_table_name = to_write.constructor.name;
-    let reference_id = to_write.discreet_orm_id;
 
     if (to_write.discreet_orm_id == -1) {
         // first time insertion, update ID after insert
@@ -246,7 +245,7 @@ function writeToDB(to_write: any, discreet_sql_io : DiscreetORMIO) {
         let update_qstr = commandForUpdateRow(to_write);
         discreet_sql_io.executeQuery(update_qstr);
     }
-    console.log([result_table_name, ("orm_id = " + reference_id)]);
+    console.log([result_table_name, ("orm_id = " + to_write.discreet_orm_id)]);
 }
 
 /** Method decorator to be applied to methods that return a databased backed object.
