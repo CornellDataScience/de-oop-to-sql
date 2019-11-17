@@ -1,4 +1,5 @@
 # DiscreetORM
+[![Build Status](https://travis-ci.org/CornellDataScience/de-oop-to-sql.svg?branch=master)](https://travis-ci.org/CornellDataScience/de-oop-to-sql)
 
 DiscreetORM is a type-safe minimal-hassle easy-to-use ORM (object relational mapping) for TypeScript developed by CDS at Cornell University.
 
