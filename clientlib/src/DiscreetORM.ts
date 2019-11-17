@@ -53,7 +53,7 @@ export class DatabaseORMIO implements DiscreetORMIO {
     close(): void {
         try {
             let done = false;
-            this.mysql_conn.end(function (error, results, fields) {
+            this.mysql_conn.end(function (error) {
                 if (error) throw error;
                 done = true;
             });
@@ -69,7 +69,7 @@ export class DatabaseORMIO implements DiscreetORMIO {
         if (!this.connected) {
             // deasync the connection operation
             let done = false;
-            this.mysql_conn.connect(function (error, results, fields) {
+            this.mysql_conn.connect(function (error) {
                 if (error) throw error;
                 done = true;
             });
@@ -105,7 +105,7 @@ export class DatabaseORMIO implements DiscreetORMIO {
         console.log(queryString);
 
         let done = false;
-        this.mysql_conn.query(queryString, function (error, results, fields) {
+        this.mysql_conn.query(queryString, function (error) {
             if (error) throw error;
             done = true;
         });
@@ -126,7 +126,7 @@ export class DatabaseORMIO implements DiscreetORMIO {
         let done = false;
 
         // deasync will hold this function until query returns
-        this.mysql_conn.query(insertString, function (error, results, fields) {
+        this.mysql_conn.query(insertString, function (error, results) {
             if (error) throw error;
             console.log("inserted ID is: " + results.insertId);
             id = results.insertId;
@@ -241,7 +241,6 @@ function writeToDB(to_write: any, discreet_sql_io : DiscreetORMIO) {
         to_write.discreet_orm_id = discreet_sql_io.insertRow(insert_qstr);
     } else {
         // need to update
-        let insert_row_template = 'UPDATE ? ;';
         let update_qstr = commandForUpdateRow(to_write);
         discreet_sql_io.executeQuery(update_qstr);
     }
@@ -355,7 +354,7 @@ export class StoredClass implements ObjectListener<any>{
         let args = new Array(1);
         args[0] = table_name;
         //used to keep track of the actual 'real' attributes 
-        var count = 0;
+        let count = 0;
         for (let i = 0; i < keys.length; i++) {
             if(typeof(obj[keys[i]]) != "function" && typeof(obj[keys[i]]) != "undefined" && typeof(obj[keys[i]]) != "object") {
                 // We want to ignore the secret discreet_orm_id, since discreet_orm_id is already hardcoded in.
