@@ -54,3 +54,6 @@ console.log(ahad_student);
 DiscreetORM.deleteFromDatabase(ahad_student, DiscreetORM.SQL_IO);
 console.log(ahad_student);
 console.log("DONE!");
+
+// TODO: we need a better way of handling this
+DiscreetORM.SQL_IO.close();

@@ -27,6 +27,7 @@ export interface DiscreetORMIO {
     readFromDB(command : string) : Array<DBRowResult>;
     reconstructObj<T> (entry : DBRowResult, class_name: string) : T;
     executeQuery(queryString : string ) : void;
+    close(): void;
 }
 
 /** 
@@ -38,6 +39,7 @@ export class DatabaseORMIO implements DiscreetORMIO {
     sql_filepath : string;
     tlist_filepath : string;
     mysql_conn : Connection;
+    connected: boolean;
     FILE_ENCODING = 'utf8';
     FILE_NOT_FOUND_ERROR_IDENT = 'no such';
 
@@ -45,6 +47,37 @@ export class DatabaseORMIO implements DiscreetORMIO {
         this.sql_filepath = sql_path;
         this.tlist_filepath = tlist_path;
         this.mysql_conn = mysql_conn;
+        this.connected = false;
+    }
+
+    close(): void {
+        try {
+            let done = false;
+            this.mysql_conn.end(function (error, results, fields) {
+                if (error) throw error;
+                done = true;
+            });
+
+            deasync.loopWhile(function () {return !done});
+        } catch {
+            // if there was an error, kill the connection
+            this.mysql_conn.destroy();
+        }
+    }
+
+    connectIfNotConnected() : void {
+        if (!this.connected) {
+            // deasync the connection operation
+            let done = false;
+            this.mysql_conn.connect(function (error, results, fields) {
+                if (error) throw error;
+                done = true;
+            });
+
+            deasync.loopWhile(function() {return !done});
+        }
+
+        this.connected = true;
     }
 
     readTables() : string[] {
@@ -68,6 +101,7 @@ export class DatabaseORMIO implements DiscreetORMIO {
      * @param queryString the escaped SQL update or delte query
      */
     executeQuery(queryString : string ) : void {
+        this.connectIfNotConnected();
         console.log(queryString);
 
         let done = false;
@@ -85,6 +119,7 @@ export class DatabaseORMIO implements DiscreetORMIO {
      * @param insertString
      */
     insertRow(insertString : string ) : number {
+        this.connectIfNotConnected();
         console.log(insertString);
 
         let id = -1;
@@ -120,6 +155,7 @@ export class DatabaseORMIO implements DiscreetORMIO {
      * entries of objects as specified in the command string.
     */
     readFromDB(class_name : string) : Array<DBRowResult> {
+        this.connectIfNotConnected();
         let escaped_command = mysql.format("SELECT * FROM ?", [class_name]);
         let output: Array<DBRowResult>;
         try {
@@ -384,7 +420,7 @@ let conn = mysql.createConnection({
     password : 'fakepassword',
     database : 'testing'
 });
-conn.connect();
+// conn.connect();
 
 export const SQL_IO = new DatabaseORMIO(command_out, table_lst, conn);
 
