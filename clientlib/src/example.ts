@@ -53,25 +53,11 @@ ahad_student = Student.updateGPA(ahad_student, 1.5);
 console.log(ahad_student);
 DiscreetORM.deleteFromDatabase(ahad_student, DiscreetORM.SQL_IO);
 console.log(ahad_student);
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-
->>>>>>> ca40e6e69971129f9e8b86d1547030be66f7dfd6
 
 let test_obj = Object.create({a: 0, b: "hello"});
 let test_obj_sql = DiscreetORM.commandForAddRow(test_obj);
 console.log(test_obj_sql)
-<<<<<<< HEAD
-=======
-=======
-
->>>>>>> ca40e6e69971129f9e8b86d1547030be66f7dfd6
 console.log("DONE!");
 
 // TODO: we need a better way of handling this
 DiscreetORM.SQL_IO.close();
-<<<<<<< HEAD
->>>>>>> origin/master
-=======
->>>>>>> ca40e6e69971129f9e8b86d1547030be66f7dfd6
