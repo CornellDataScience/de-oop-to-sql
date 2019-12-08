@@ -1,7 +1,8 @@
-import {Connection} from "mysql";
+import {Connection, FieldInfo, MysqlError} from "mysql";
 
 const fs = require('fs');
 import mysql = require('mysql');
+import {NOTIMP} from "dns";
 
 const deasync = require('deasync');
 
@@ -11,9 +12,9 @@ export interface ObjectListener<T> {
 }
 
 /**
- * An array that represents a row in the database representation.
+ * A dictionary corresponding to the row result of a DB query
  */
-export type DBRowResult = Array<string>;
+export type DBRowResult = object;
 
 /**
  * DiscreetORMIO defines a location to write SQL commands to. 
@@ -102,7 +103,6 @@ export class DatabaseORMIO implements DiscreetORMIO {
      */
     executeQuery(queryString : string ) : void {
         this.connectIfNotConnected();
-        console.log(queryString);
 
         let done = false;
         this.mysql_conn.query(queryString, function (error) {
@@ -120,7 +120,6 @@ export class DatabaseORMIO implements DiscreetORMIO {
      */
     insertRow(insertString : string ) : number {
         this.connectIfNotConnected();
-        console.log(insertString);
 
         let id = -1;
         let done = false;
@@ -128,7 +127,7 @@ export class DatabaseORMIO implements DiscreetORMIO {
         // deasync will hold this function until query returns
         this.mysql_conn.query(insertString, function (error, results) {
             if (error) throw error;
-            console.log("inserted ID is: " + results.insertId);
+            // console.log("inserted ID is: " + results.insertId);
             id = results.insertId;
             done = true;
         });
@@ -151,21 +150,29 @@ export class DatabaseORMIO implements DiscreetORMIO {
 
     /** 
      * readFromDB(command : string, discreet_sql_io) passes a string command into the database
-     * and returns an array of type DBRowResult (which is an array of strings), populated with 
+     * and returns an array of type DBRowResult (which is an array of objects), populated with
      * entries of objects as specified in the command string.
     */
     readFromDB(class_name : string) : Array<DBRowResult> {
         this.connectIfNotConnected();
-        let escaped_command = mysql.format("SELECT * FROM ?", [class_name]);
-        let output: Array<DBRowResult>;
+        let query_string = mysql.format("SELECT * FROM ?", [class_name]);
+        let output: Array<DBRowResult> = null;
         try {
-            // Need code that parses the command and returns the result as DBRowResult
-            // For loop: store each DBRowResult into a single index of output
-            console.log(escaped_command)
+            let done = false;
+
+            // deasync will hold this function until query returns
+            this.mysql_conn.query(query_string, function (error: MysqlError | null, results: any) {
+                if (error) throw error;
+                output = results; // TODO: we need to find out if this works; should behave in theory
+                console.log("result values: " + results);
+                done = true;
+            });
+            deasync.loopWhile(function() {return !done});
+
         } catch (e) {
             throw e
         }
-        return output
+        return output;
     }
     
     /** 
@@ -173,6 +180,7 @@ export class DatabaseORMIO implements DiscreetORMIO {
      * entry of that corresponding class database and returns it.
     */
     reconstructObj<T> (entry : DBRowResult, class_name: string) : T {
+        // TODO
         throw new Error("Not implemented yet")
     }
 }
