@@ -1,20 +1,8 @@
 import * as DiscreetORM from './../clientlib/src/DiscreetORM'
 import { expect } from 'chai';
 import 'mocha';
-import {DatabaseORMIO, DiscreetORMIO} from "./../clientlib/src/DiscreetORM";
 import {Connection} from "mysql";
 let testdouble = require('testdouble');
-let chai = require('chai');
-// let tdChai = require("testdouble-chai");
-// chai.use(tdChai(testdouble));
-
-// let mysql;
-// module.exports = {
-//     beforeEach: () => {
-//         mysql = testdouble.replace('../node_modules/@types/mysql');
-//     },
-//     afterEach: function () { testdouble.reset() }
-// };
 
 
 describe('addRow test bench', () => {
@@ -123,14 +111,6 @@ describe('SQL_IO test bench', () => {
     });
 });
 
-describe('insertRow test bench', () => {
-
-});
-
-describe('writeNewTable test bench', () => {
-
-});
-
 describe('readFromDB test bench', () => {
-
+    // TODO: tests depend on final version of readFromDB
 });
