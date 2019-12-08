@@ -199,17 +199,22 @@ export function WriteModifiedToDB(discreet_sql_io : DiscreetORMIO){
 
 export function attributeDecorator(discreet_sql_io : DiscreetORMIO){ 
     let attrib = "attribute"
-    return function(target: Object, propertyName: string){
-        let newVal = propertyName //#TODO: need to decide what items to store
+    return function(target: any, key: string | symbol){
+        let newVal = {"propertyName": key,
+                     "propertyType" : typeof(key)} //#TODO: need to decide what items to store
         if (Reflect.hasOwnMetadata(attrib, target)) {
             let value = Reflect.getOwnMetadata(attrib, target)
             value.push(newVal)
             return Reflect.defineMetadata(attrib, value, target)
-        }
+        }   
         else {
             return Reflect.defineMetadata(attrib, [newVal], target) 
         }
     } 
+}
+
+export function methodDecorator(discreet_sql_io : DiscreetORMIO) {
+
 }
 
 /**
