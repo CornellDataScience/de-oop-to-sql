@@ -1,3 +1,5 @@
+import { AssertionError } from "assert";
+
 const fs = require('fs');
 const sqlstring = require ("sqlstring");
 const hash = require('object-hash');
@@ -7,6 +9,15 @@ export interface ObjectListener<T> {
     onObjectCreation(t: T): void;
 }
 
+/**
+ * Why isn't this included by default? This is a secret hidden deep in the deepest depths of Redmond, WA. 
+ * @param statement boolean to assert.
+ */
+function assert(statement: boolean) {
+    if (!statement){
+        throw new Error("Assertion failure!");
+    }
+}
 /**
  * An array that represents a row in the database representation. 
  * \[discreet_orm_id, 'attribute_1_data', ... , 'attribute_n_data'\]
@@ -24,7 +35,8 @@ export interface DiscreetORMIO {
     writeNewTable(table_name : string) : void;
     readFromDB(command : string) : Array<DBRowResult>;
     readColumnsFromTable(table_name: string): Array<string>;
-    reconstructObj<T> (entry : DBRowResult, class_name: string, column_names: Array<string>) : T;
+    readColumnTypesFromTable(table_name: string): Array<string>;
+    reconstructObj<T> (entry : DBRowResult, class_name: string, column_names: Array<string>, column_types: Array<string>) : T;
 }
 
 /** 
@@ -97,20 +109,45 @@ export class DatabaseORMIO implements DiscreetORMIO {
         throw new Error("Not implemented yet.")
     }
 
+    /**
+     * Gives the types of the columns for a given table_name.
+     * Reads it from a class metadata table.
+     * @param table_name The table from which to return the columns.
+     */
+    readColumnTypesFromTable(table_name: string): Array<string> {
+        throw new Error("Not implemented yet.")
+    }
+
+    private static assignAndCastIfPossible<T>(acc: T, column: any, column_type: string, column_name: string): T{
+        switch (column_type){
+            case "number":  acc[column_name] = +column; break;
+            case "function": acc[column_name] =  <Function> <unknown> column; break;
+            case "object": acc[column_name] =  <object> <unknown> column; assert(typeof(acc[column_name]) === column_type); break;
+            case "Object": acc[column_name] =  <Object> <unknown> column; break;
+            default: console.log("Encountered column type " + column_type + " in casting"); acc[column_name] = column; break;
+        }
+        return acc;
+    } 
+
     /** 
      * reconstructObj(entry : DBRowResult) creates an object of type T from a row 
      * entry of that corresponding class database and returns it.
     */
-    reconstructObj<T> (entry : DBRowResult, class_name: string, column_names: Array<string>) : T {
+    reconstructObj<T> (entry : DBRowResult, class_name: string, column_names: Array<string>, column_types: Array<string>) : T {
         // TODO: Types, and orm_id special handeling, class_name handeling? 
         let empty_obj = <T>{};
         let source = entry.reduce(function(acc, column, index) {
+            console.log("Considering " + column + " with name " + column_names[index] + " with type " + column_types[index]);
+            let any_column = <any>column;
             if (column_names[index] === 'discreet_orm_id'){
                 // Skip discreet_orm_id for now
                 // We can use Object.defineProperty to maybe privatize it
                 return acc; 
             }
-            acc[column_names[index]] = column;
+            Object.defineProperty(any_column.constructor, 'name', {
+                value: column_types[index],
+            });
+            acc = DatabaseORMIO.assignAndCastIfPossible(acc, any_column, column_types[index], column_names[index]);
             return acc;
         }, empty_obj);
 
@@ -299,9 +336,10 @@ function queryEntireClass<T> (class_name : string, discreet_sql_io : DiscreetORM
     let results = discreet_sql_io.readFromDB(escaped_command);
     let query_result = new Array<T>();
     let column_names = discreet_sql_io.readColumnsFromTable(class_name);
+    let column_types = discreet_sql_io.readColumnTypesFromTable(class_name);
 
     results.forEach(function (object_entry) {
-        let obj = discreet_sql_io.reconstructObj<T>(object_entry, class_name, column_names);
+        let obj = discreet_sql_io.reconstructObj<T>(object_entry, class_name, column_names, column_types);
         query_result.push(obj);
     });
 
