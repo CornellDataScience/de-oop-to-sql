@@ -93,8 +93,7 @@ describe('addRow test bench', () => {
             }
         }
         let test_obj = new TestClass();
-        let test_id = DiscreetORM.idOfObject(test_obj);
-        let expected_command = <string>'INSERT\xa0INTO\xa0\'TestClass\'\xa0VALUES\xa0(\'' + test_id + '\',\xa0\'hello\',\xa034);'
+        let expected_command = <string>'INSERT INTO `TestClass` (`a`, `b`) VALUES (\'hello\', 34);';
         let test_obj_sql = <string>DiscreetORM.commandForAddRow(test_obj);
         expect(spaceIndependentEquals(expected_command, test_obj_sql)).to.be.true;
     });
@@ -116,8 +115,7 @@ describe('addRow test bench', () => {
         Object.defineProperty(test_obj, 'f', {
             enumerable: true
         });
-        let test_id = DiscreetORM.idOfObject(test_obj);
-        let expected_command = <string>'INSERT\xa0INTO\xa0\'TestClass\'\xa0VALUES\xa0(\'' + test_id + '\',\xa0\'hello\',\xa034);'
+        let expected_command = <string>'INSERT INTO `TestClass` (`a`, `b`) VALUES (\'hello\', 34);';
         let test_obj_sql = <string>DiscreetORM.commandForAddRow(test_obj);
         expect(spaceIndependentEquals(expected_command, test_obj_sql)).to.be.true;
     });
@@ -210,15 +208,16 @@ describe('Reconstruct test bench.', () => {
             }
         }
         let test_obj = new TestClass();
-        let entry_array = ['-1', test_obj.a, test_obj.b];
+        let entry_map = {"discreet_orm_id":'-1', "a":test_obj.a, "b":test_obj.b};
         let class_name = "TestClass";
-        let column_names = ["discreet_orm_id", "a", "b"];
+
         let column_types = ["number", typeof(test_obj.a), typeof(test_obj.b)];
         let reconstructed_object = DiscreetORM.SQL_IO.reconstructObj<TestClass>(
-            entry_array, 
+            entry_map, 
             class_name, 
-            column_names, 
             column_types);
+        console.log(reconstructed_object);
+        console.log(test_obj);
         expect(parameterBasedEquals(test_obj, reconstructed_object)).to.be.true;
     });
 
@@ -232,19 +231,17 @@ describe('Reconstruct test bench.', () => {
             }
         }
         let test_obj = new TestClass();
-        let entry_array = ['-1', test_obj.a, test_obj.b.toString()];
+        let entry_map = {"discreet_orm_id":'-1', "a":test_obj.a, "b":test_obj.b.toString()};
         let class_name = "TestClass";
-        let column_names = ["discreet_orm_id", "a", "b"];
         let column_types = ["number", typeof(test_obj.a), typeof(test_obj.b)];
         let reconstructed_object = DiscreetORM.SQL_IO.reconstructObj<TestClass>(
-            entry_array, 
-            class_name, 
-            column_names, 
+            entry_map, 
+            class_name,  
             column_types);
-        expect(parameterBasedEquals(test_obj, reconstructed_object, true)).to.be.true;
+        expect(parameterBasedEquals(test_obj, reconstructed_object)).to.be.true;
     });
 
-    it ("Reconstruct object with pretty complicated types.", () => {
+    it ("Reconstruct object with forbidden attribute types fails.", () => {
         class TestClass{
             a: string;
             b: number;
@@ -259,16 +256,18 @@ describe('Reconstruct test bench.', () => {
             }
         }
         let test_obj = new TestClass();
-        let entry_array = ['-1', test_obj.a, test_obj.b.toString(), test_obj.num_tup.toString(), test_obj.identity.toString(), ];
+        let entry_map = {"discreet_orm_id":'-1',  
+            "a":test_obj.a, 
+            "b":test_obj.b.toString(), 
+            "num_tup":test_obj.num_tup.toString(), 
+            "identity":test_obj.identity.toString()};
         let class_name = "TestClass";
-        let column_names = ["discreet_orm_id", "a", "b", "num_tup", "identity"];
-        console.log("Type of num_tup is " + typeof(test_obj.num_tup) + " in test.");
+        let column_names = [,, , , ];
         let column_types = ["number", typeof(test_obj.a), typeof(test_obj.b), typeof(test_obj.num_tup), typeof(test_obj.identity)];
         let reconstructed_object = DiscreetORM.SQL_IO.reconstructObj<TestClass>(
-            entry_array, 
+            entry_map, 
             class_name, 
-            column_names, 
             column_types);
-        expect(parameterBasedEquals(test_obj, reconstructed_object, true)).to.be.true;
+        expect(parameterBasedEquals(test_obj, reconstructed_object)).to.be.false;
     });
 });

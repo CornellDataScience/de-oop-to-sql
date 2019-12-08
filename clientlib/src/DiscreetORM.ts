@@ -38,8 +38,7 @@ export interface DiscreetORMIO {
     readFromDB(command : string) : Array<DBRowResult>;
     readColumnsFromTable(table_name: string): Array<string>;
     readColumnTypesFromTable(table_name: string): Array<string>;
-    // reconstructObj<T> (entry : DBRowResult, class_name: string, column_names: Array<string>, column_types: Array<string>) : T;
-    reconstructObj<T> (entry : DBRowResult, class_name: string) : T;
+    reconstructObj<T> (entry : DBRowResult, class_name: string, column_types: Array<string>) : T;
     executeQuery(queryString : string ) : void;
     close(): void;
 }
@@ -209,21 +208,35 @@ export class DatabaseORMIO implements DiscreetORMIO {
         switch (column_type){
             case "number":  acc[column_name] = +column; break;
             case "function": acc[column_name] =  <Function> <unknown> column; break;
-            case "object": acc[column_name] =  <object> <unknown> column; assert(typeof(acc[column_name]) === column_type); break;
+            case "object": acc[column_name] =  <object> <unknown> column; break;
             case "Object": acc[column_name] =  <Object> <unknown> column; break;
-            default: console.log("Encountered column type " + column_type + " in casting"); acc[column_name] = column; break;
+            default: acc[column_name] = column; break;
         }
         return acc;
     } 
 
+    /**
+     * Deconstructs DBRowResult entry into a tuple of column_names * column_entries.
+     */
+    private static explodeDBRowResult(entry: DBRowResult) : [Array<string>, Array<string>] {
+        let column_names = [];
+        let column_entries = [];
+
+        Object.keys(entry).map(function (object_key) {
+            column_names.push(object_key);
+            column_entries.push(entry[object_key]);
+        });
+        return [column_names, column_entries];
+    }
     /** 
-     * reconstructObj(entry : DBRowResult) creates an object of type T from a row 
+     * reconstructObj(entry : DBRowResult, class_name, column_types) creates an object of type T from a row 
      * entry of that corresponding class database and returns it.
     */
-    reconstructObj<T> (entry : DBRowResult, class_name: string, column_names: Array<string>, column_types: Array<string>) : T {
+    reconstructObj<T> (entry : DBRowResult, class_name: string, column_types: Array<string>) : T {
         // TODO: Types, and orm_id special handeling, class_name handeling? 
         let empty_obj = <T>{};
-        let source = entry.reduce(function(acc, column, index) {
+        let [column_names, column_entries] = DatabaseORMIO.explodeDBRowResult(entry);
+        let source = column_entries.reduce(function(acc, column, index) {
             console.log("Considering " + column + " with name " + column_names[index] + " with type " + column_types[index]);
             let any_column = <any>column;
             if (column_names[index] === 'discreet_orm_id'){
@@ -373,10 +386,6 @@ export function commandForAddRow(obj: any) : command{
     return mysql.format(add_row_template, [obj.constructor.name, attrs_list, vals_list]);
 }
 
-export function idOfObject(obj){
-    return hash(obj);
-}
-
 function commandForUpdateRow(obj: any) : command{
     let update_row_template = "UPDATE ?? SET ? WHERE orm_id = ?;";
     let attrs_dict = {};
@@ -404,7 +413,7 @@ function queryEntireClass<T> (class_name : string, discreet_sql_io : DiscreetORM
     let column_types = discreet_sql_io.readColumnTypesFromTable(class_name);
 
     results.forEach(function (object_entry) {
-        let obj = discreet_sql_io.reconstructObj<T>(object_entry, class_name);
+        let obj = discreet_sql_io.reconstructObj<T>(object_entry, class_name, column_types);
         query_result.push(obj);
     });
 
