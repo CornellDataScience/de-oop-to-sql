@@ -151,7 +151,7 @@ export class DatabaseORMIO implements DiscreetORMIO {
 
     /** 
      * readFromDB(command : string, discreet_sql_io) passes a string command into the database
-     * and returns an array of type DBRowResult (which is an array of strings), populated with 
+     * and returns an array of type DBRowResult (which is an array of objects), populated with
      * entries of objects as specified in the command string.
     */
     readFromDB(class_name : string) : Array<DBRowResult> {
