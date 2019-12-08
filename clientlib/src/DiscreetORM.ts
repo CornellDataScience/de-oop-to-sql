@@ -120,7 +120,6 @@ export class DatabaseORMIO implements DiscreetORMIO {
      */
     insertRow(insertString : string ) : number {
         this.connectIfNotConnected();
-        console.log(insertString);
 
         let id = -1;
         let done = false;
@@ -128,7 +127,7 @@ export class DatabaseORMIO implements DiscreetORMIO {
         // deasync will hold this function until query returns
         this.mysql_conn.query(insertString, function (error, results) {
             if (error) throw error;
-            console.log("inserted ID is: " + results.insertId);
+            // console.log("inserted ID is: " + results.insertId);
             id = results.insertId;
             done = true;
         });

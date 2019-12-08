@@ -78,7 +78,7 @@ describe('SQL_IO test bench', () => {
         DiscreetORM.SQL_IO.connected = true;
         testdouble.when(DiscreetORM.SQL_IO.mysql_conn.query("TEST QUERY STRING")).thenCallback(null);
 
-        // test
+        // invocation
         DiscreetORM.SQL_IO.executeQuery("TEST QUERY STRING");
 
         // verify side effect
@@ -91,8 +91,32 @@ describe('SQL_IO test bench', () => {
         testdouble.when(DiscreetORM.SQL_IO.mysql_conn.query("TEST QUERY STRING")).thenCallback(null);
         testdouble.when(DiscreetORM.SQL_IO.mysql_conn.connect()).thenCallback(null);
 
-        // test
+        // invocation
         DiscreetORM.SQL_IO.executeQuery("TEST QUERY STRING");
+
+        // verify side effect
+        testdouble.verify(DiscreetORM.SQL_IO.mysql_conn.connect(testdouble.matchers.anything()));
+    });
+
+    // insertRow tests
+    it ("insertRow gets returned ID", () => {
+        // setup
+        testdouble.replace(DiscreetORM.SQL_IO, 'mysql_conn');
+        DiscreetORM.SQL_IO.connected = true;
+        testdouble.when(DiscreetORM.SQL_IO.mysql_conn.query("TEST INSERT STRING")).thenCallback(null, {insertId: 999});
+
+        // test - getting specified value implies that query was called and awaited correctly
+        expect(DiscreetORM.SQL_IO.insertRow("TEST INSERT STRING")).to.equal(999);
+    });
+    it ("insertRow connects to DB if not connected", () => {
+        // setup
+        testdouble.replace(DiscreetORM.SQL_IO, 'mysql_conn');
+        DiscreetORM.SQL_IO.connected = false;
+        testdouble.when(DiscreetORM.SQL_IO.mysql_conn.query("TEST INSERT STRING")).thenCallback(null, {insertId: 999});
+        testdouble.when(DiscreetORM.SQL_IO.mysql_conn.connect()).thenCallback(null);
+
+        // invocation
+        DiscreetORM.SQL_IO.insertRow("TEST INSERT STRING");
 
         // verify side effect
         testdouble.verify(DiscreetORM.SQL_IO.mysql_conn.connect(testdouble.matchers.anything()));
