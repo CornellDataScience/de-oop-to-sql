@@ -2,6 +2,7 @@ import {Connection, FieldInfo, MysqlError} from "mysql";
 
 const fs = require('fs');
 import mysql = require('mysql');
+import {NOTIMP} from "dns";
 
 const deasync = require('deasync');
 
@@ -102,7 +103,6 @@ export class DatabaseORMIO implements DiscreetORMIO {
      */
     executeQuery(queryString : string ) : void {
         this.connectIfNotConnected();
-        console.log(queryString);
 
         let done = false;
         this.mysql_conn.query(queryString, function (error) {
