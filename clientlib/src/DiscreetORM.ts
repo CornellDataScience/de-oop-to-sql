@@ -236,7 +236,6 @@ export class DatabaseORMIO implements DiscreetORMIO {
         let empty_obj = <T>{};
         let [column_names, column_entries] = DatabaseORMIO.explodeDBRowResult(entry);
         let source = column_entries.reduce(function(acc, column, index) {
-            console.log("Considering " + column + " with name " + column_names[index] + " with type " + column_types[index]);
             let any_column = <any>column;
             if (column_names[index] === 'discreet_orm_id'){
                 // Skip discreet_orm_id for now
