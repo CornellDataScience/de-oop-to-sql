@@ -233,7 +233,6 @@ export class DatabaseORMIO implements DiscreetORMIO {
      * entry of that corresponding class database and returns it.
     */
     reconstructObj<T> (entry : DBRowResult, class_name: string, column_types: Array<string>) : T {
-        // TODO: Types, and orm_id special handeling, class_name handeling? 
         let empty_obj = <T>{};
         let [column_names, column_entries] = DatabaseORMIO.explodeDBRowResult(entry);
         let source = column_entries.reduce(function(acc, column, index) {
