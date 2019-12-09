@@ -1,3 +1,4 @@
+import { AssertionError } from "assert";
 import {Connection, FieldInfo, MysqlError} from "mysql";
 
 const fs = require('fs');
@@ -11,6 +12,15 @@ export interface ObjectListener<T> {
     onObjectCreation(t: T): void;
 }
 
+/**
+ * Why isn't this included by default? This is a secret hidden deep in the deepest depths of Redmond, WA. 
+ * @param statement boolean to assert.
+ */
+function assert(statement: boolean) {
+    if (!statement){
+        throw new Error("Assertion failure!");
+    }
+}
 /**
  * A dictionary corresponding to the row result of a DB query
  */
@@ -26,7 +36,9 @@ export interface DiscreetORMIO {
     insertRow(insertString : string ) : number
     writeNewTable(table_name : string) : void;
     readFromDB(command : string) : Array<DBRowResult>;
-    reconstructObj<T> (entry : DBRowResult, class_name: string) : T;
+    readColumnsFromTable(table_name: string): Array<string>;
+    readColumnTypesFromTable(table_name: string): Array<string>;
+    reconstructObj<T> (entry : DBRowResult, class_name: string, column_types: Array<string>) : T;
     executeQuery(queryString : string ) : void;
     close(): void;
 }
@@ -175,13 +187,72 @@ export class DatabaseORMIO implements DiscreetORMIO {
         return output;
     }
     
+    /**
+     * Gives the names of the columns for a given table_name.
+     * @param table_name The table from which to return the columns.
+     */
+    readColumnsFromTable(table_name: string): Array<string> {
+        throw new Error("Not implemented yet.")
+    }
+
+    /**
+     * Gives the types of the columns for a given table_name.
+     * Reads it from a class metadata table.
+     * @param table_name The table from which to return the columns.
+     */
+    readColumnTypesFromTable(table_name: string): Array<string> {
+        throw new Error("Not implemented yet.")
+    }
+
+    private static assignAndCastIfPossible<T>(acc: T, column: any, column_type: string, column_name: string): T{
+        switch (column_type){
+            case "number":  acc[column_name] = +column; break;
+            case "function": acc[column_name] =  <Function> <unknown> column; break;
+            case "object": acc[column_name] =  <object> <unknown> column; break;
+            case "Object": acc[column_name] =  <Object> <unknown> column; break;
+            default: acc[column_name] = column; break;
+        }
+        return acc;
+    } 
+
+    /**
+     * Deconstructs DBRowResult entry into a tuple of column_names * column_entries.
+     */
+    private static explodeDBRowResult(entry: DBRowResult) : [Array<string>, Array<string>] {
+        let column_names = [];
+        let column_entries = [];
+
+        Object.keys(entry).map(function (object_key) {
+            column_names.push(object_key);
+            column_entries.push(entry[object_key]);
+        });
+        return [column_names, column_entries];
+    }
     /** 
-     * reconstructObj(entry : DBRowResult) creates an object of type T from a row 
+     * reconstructObj(entry : DBRowResult, class_name, column_types) creates an object of type T from a row 
      * entry of that corresponding class database and returns it.
     */
-    reconstructObj<T> (entry : DBRowResult, class_name: string) : T {
-        // TODO
-        throw new Error("Not implemented yet")
+    reconstructObj<T> (entry : DBRowResult, class_name: string, column_types: Array<string>) : T {
+        let empty_obj = <T>{};
+        let [column_names, column_entries] = DatabaseORMIO.explodeDBRowResult(entry);
+        let source = column_entries.reduce(function(acc, column, index) {
+            let any_column = <any>column;
+            if (column_names[index] === 'discreet_orm_id'){
+                // Skip discreet_orm_id for now
+                // We can use Object.defineProperty to maybe privatize it
+                return acc; 
+            }
+            Object.defineProperty(any_column.constructor, 'name', {
+                value: column_types[index],
+            });
+            acc = DatabaseORMIO.assignAndCastIfPossible(acc, any_column, column_types[index], column_names[index]);
+            return acc;
+        }, empty_obj);
+
+        Object.defineProperty(source.constructor, 'name', {
+            value: class_name,
+        })
+        return source;
     }
 }
 
@@ -358,11 +429,13 @@ function commandForUpdateRow(obj: any) : command{
  * specified class to reconstruct them into TypeScript objects. 
  */
 function queryEntireClass<T> (class_name : string, discreet_sql_io : DiscreetORMIO) : Array<T> {
-    let table = discreet_sql_io.readFromDB(class_name);
+    let results = discreet_sql_io.readFromDB(class_name);
     let query_result = new Array<T>();
+    let column_names = discreet_sql_io.readColumnsFromTable(class_name);
+    let column_types = discreet_sql_io.readColumnTypesFromTable(class_name);
 
-    table.forEach(function (object_entry) {
-        let obj = discreet_sql_io.reconstructObj<T>(object_entry, class_name);
+    results.forEach(function (object_entry) {
+        let obj = discreet_sql_io.reconstructObj<T>(object_entry, class_name, column_types);
         query_result.push(obj);
     });
 
