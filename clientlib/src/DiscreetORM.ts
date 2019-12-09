@@ -367,30 +367,6 @@ export function InstanceListener(discreet_sql_io : DiscreetORMIO){
         return descriptor;
     }
 }
-/**
- * Decorator to be applied to object attributes.
- *
- * @param discreet_sql_io
- * @constructor
- */
-export function attributeDecorator(discreet_sql_io : DiscreetORMIO){ 
-    let attrib = "attribute";
-    let forbidden_attribute_types = ["function", "undefined", "object"];
-    return function(target: any, key: string | symbol){
-        if(forbidden_attribute_types.indexOf(String(key)) > -1){
-            let newVal = {"propertyName": key,
-            "propertyType" : typeof(key)} //#TODO: need to decide what items to store
-            if (Reflect.hasOwnMetadata(attrib, target)) {
-                let value = Reflect.getOwnMetadata(attrib, target)
-                value.push(newVal)
-                return Reflect.defineMetadata(attrib, value, target)
-            }   
-            else {
-                return Reflect.defineMetadata(attrib, [newVal], target) 
-            }
-        }        
-    } 
-}
 
 export function commandForAddRow(obj: any) : command{
     let add_row_template = "INSERT INTO ?? (??) VALUES (?);";
