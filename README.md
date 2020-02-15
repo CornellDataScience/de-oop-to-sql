@@ -8,5 +8,3 @@ DiscreetORM is under development and currently supports:
 * Database backed object updates with decorators on static functions.
 
 Currently DiscreetORM only writes to a commands.sql file without any DBMS instance running and processing the commands. This is planned.
-
-DiscreetORM is under development. 
